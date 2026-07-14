@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Road to 70.3">
-<meta name="theme-color" content="#f4f3ef">
+<meta name="theme-color" content="#fce9ef">
 <meta name="description" content="Road to 70.3 — personal triathlon training plan tracker.">
 <title>Road to 70.3</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -16,8 +16,8 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
 :root{
-  --bg:#f4f3ef;--surface:#ffffff;--surface2:#faf9f5;--line:#e9e6df;--text:#34322c;--muted:#8f8c82;--faint:#b7b3a8;
-  --swim:#5aa7b6;--bike:#d69f5f;--run:#7bae74;--strength:#a892d4;--rest:#b7b3a8;--good:#7bae74;
+  --bg:#fce9ef;--surface:#ffffff;--surface2:#fdf2f6;--line:#f3dce4;--text:#b32a3b;--muted:#9c868f;--faint:#c9b4bc;
+  --swim:#8fc4d4;--bike:#e6ba8c;--run:#a9d0a0;--strength:#cbb6e6;--rest:#cdbfc6;--good:#e0374d;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
@@ -37,7 +37,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 .loadbar.wk{margin-top:14px}.loadbar.wk .lchip{font-size:12px;padding:6px 11px;background:var(--surface2)}
 .overall{margin-top:22px}
 .bar{height:7px;border-radius:99px;background:#e7e4dc;overflow:hidden}
-.bar .fill{height:100%;border-radius:99px;background:var(--run);width:0;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.bar .fill{height:100%;border-radius:99px;background:var(--good);width:0;transition:width .5s cubic-bezier(.2,.8,.2,1)}
 .overall-text{margin-top:9px;font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between}
 .overall-text b{color:var(--text);font-weight:700}
 .pills{display:flex;gap:7px;overflow-x:auto;padding:6px 0 16px;scrollbar-width:none;position:sticky;top:0;background:linear-gradient(var(--bg),var(--bg) 72%,transparent);z-index:5}
@@ -95,8 +95,8 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 .sess .top{cursor:pointer}
 .log{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
 .log .feltrow{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px}
-.log .feltval{color:var(--run);font-weight:700}
-.feltrange{width:100%;accent-color:var(--run);margin:0 0 11px}
+.log .feltval{color:var(--good);font-weight:700}
+.feltrange{width:100%;accent-color:var(--good);margin:0 0 11px}
 .lognote{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:12.5px;color:var(--text);background:var(--surface2);font-weight:500}
 .lognote::placeholder{color:var(--faint)}
 .pc label{display:block;font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:12px}
@@ -186,7 +186,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <script>
 const RACE=new Date(2026,10,22);
-const DISC={swim:{label:'Swim',color:'#2fc7da'},bike:{label:'Bike',color:'#f5a623'},run:{label:'Run',color:'#56cf6b'},strength:{label:'Strength',color:'#ad8cf7'},rest:{label:'Rest',color:'#62717f'}};
+const DISC={swim:{label:'Swim',color:'#8fc4d4'},bike:{label:'Bike',color:'#e6ba8c'},run:{label:'Run',color:'#a9d0a0'},strength:{label:'Strength',color:'#cbb6e6'},rest:{label:'Rest',color:'#cdbfc6'}};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function addDays(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function lbl(iso){const d=new Date(iso+'T00:00:00');return DOW[d.getDay()]+' '+d.getDate()+' '+MO[d.getMonth()];}
