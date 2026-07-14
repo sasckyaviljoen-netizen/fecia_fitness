@@ -80,6 +80,49 @@ Do this if you want your progress to sync between iPhone, iPad, and laptop.
 
 ---
 
+## 3. Auto-detect completed workouts from intervals.icu (optional)
+
+Tick sessions off automatically when a matching activity shows up in your
+[intervals.icu](https://intervals.icu) account (matched by **same day + same
+sport**). Because intervals.icu's API can't be called from a browser and your
+API key must stay off this public repo, a tiny **Supabase Edge Function** does
+the fetching server-side. All setup is in the browser.
+
+### a. Get your intervals.icu credentials
+1. On intervals.icu: **Settings** (avatar, top-right) → scroll to the
+   **Developer** section.
+2. Copy your **Athlete ID** (looks like `i123456`) and your **API Key**.
+
+### b. Create the Edge Function
+1. In Supabase: **Edge Functions** (left sidebar) → **Deploy a new function**
+   → **Via editor** (create in the browser).
+2. Name it exactly **`intervals-sync`**.
+3. Delete the sample code and paste the contents of
+   [`supabase/functions/intervals-sync/index.ts`](./supabase/functions/intervals-sync/index.ts).
+4. **Turn "Verify JWT" OFF** for this function (the code verifies your login
+   itself; leaving it on can break the browser's CORS preflight). Deploy.
+
+   *Prefer the CLI?* `supabase functions deploy intervals-sync --no-verify-jwt`
+
+### c. Add your secrets
+In Supabase: **Edge Functions → Secrets** (or **Project Settings → Edge
+Functions**) → add two secrets:
+- `INTERVALS_ATHLETE_ID` = your athlete id (e.g. `i123456`)
+- `INTERVALS_API_KEY` = your intervals.icu API key
+
+These live only in Supabase's secret store — never in the app or the repo.
+
+### d. Use it
+- Open the app (signed in). It checks intervals.icu automatically on open and on
+  each sync. Matching sessions get ticked, with a toast like *"2 sessions
+  detected from intervals.icu."*
+- There's an **intervals.icu auto-detect** panel with a **Check now** button and
+  a last-checked line.
+- Wrong match? Just un-tick it — it won't be re-detected.
+
+> Matching uses the session's originally-scheduled date. It looks back 120 days,
+> so recent history gets picked up the first time you connect.
+
 ## How data is stored
 
 The app keeps six buckets — progress, settings, logs, day moves, added sessions,
@@ -95,6 +138,8 @@ conflict by most-recent-write per bucket.
 | `index.html` | The app UI + logic (unchanged design). |
 | `config.js` | Your Supabase URL + anon key. Edit this to enable sync. |
 | `sync.js` | Offline-first storage adapter, auth, and sync engine. |
+| `intervals.js` | Calls the intervals-sync function and auto-ticks matched sessions. |
+| `supabase/functions/intervals-sync/` | Edge Function that fetches your intervals.icu activities. |
 | `sw.js` | Service worker — offline caching / installability. |
 | `manifest.webmanifest` | PWA metadata (name, icons, colors). |
 | `schema.sql` | Supabase table + row-level-security policies. |
