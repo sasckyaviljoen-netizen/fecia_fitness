@@ -116,6 +116,35 @@
 
   window.__intervalsSync = run;
 
+  // Fetch activities for an explicit window (used by the manual "link a workout"
+  // picker). Returns { activities: [...] } or { error: "…" }.
+  window.__intervalsFetch = async function (oldest, newest) {
+    var cloud = window.__cloud;
+    if (!cloud) return { error: "cloud not ready" };
+    var sb = cloud.client(), user = cloud.user();
+    if (!sb || !user) return { error: "not signed in" };
+    if (navigator.onLine === false) return { error: "offline" };
+    try {
+      var res = await sb.functions.invoke("intervals-sync", { body: { oldest: oldest, newest: newest } });
+      if (res.error) {
+        var extra = "";
+        try {
+          var ctx = res.error.context;
+          if (ctx && typeof ctx.status !== "undefined") extra += " HTTP " + ctx.status;
+          if (ctx && typeof ctx.clone === "function") {
+            var b = await ctx.clone().text();
+            try { var j = JSON.parse(b); if (j && j.error) extra += " — " + j.error; }
+            catch (_) { if (b) extra += " — " + b.slice(0, 120); }
+          }
+        } catch (_) {}
+        return { error: "request failed" + extra };
+      }
+      var data = res.data || {};
+      if (data.error) return { error: data.error };
+      return { activities: data.activities || [] };
+    } catch (e) { return { error: (e && e.message) || "failed" }; }
+  };
+
   document.addEventListener("DOMContentLoaded", function () {
     var btn = document.getElementById("ivCheck");
     if (btn) btn.onclick = function () { run(true); };

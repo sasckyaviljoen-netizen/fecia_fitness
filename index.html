@@ -72,6 +72,11 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 .sess[data-disc="strength"] .ttl,.sess[data-disc="strength"] .tag,.lchip.disc-strength .ll{font-family:'Archivo Black',sans-serif}
 .sess[data-disc="swim"] .ttl,.sess[data-disc="run"] .ttl{font-size:15.5px}
 .actnote{font-size:12px;color:var(--good);font-weight:700;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:9px;line-height:1.5}
+.ivlinkbtn,.ivunlinkbtn{background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;padding:8px 11px;border-radius:9px;cursor:pointer;margin:0 6px 6px 0}
+.ivlinkopt{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:7px;font-family:inherit;font-size:13px;color:var(--text);font-weight:700;cursor:pointer;line-height:1.5}
+.ivlinkopt:hover{border-color:var(--good)}
+.ivlinkopt small{color:var(--muted);font-weight:600;font-size:11.5px}
+.ivlinkmsg{font-size:12px;color:var(--muted);margin-top:8px;font-weight:600;line-height:1.5}
 .sess .ttl{font-weight:600;font-size:14.5px;color:var(--text)}
 .sess .opt{font-size:9.5px;color:var(--faint);border:1px solid var(--line);padding:1px 6px;border-radius:99px;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
 .sess .chev{margin-left:8px;color:var(--faint);font-size:15px;transition:transform .25s;line-height:1}
@@ -195,7 +200,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <script>
 const RACE=new Date(2026,10,22);
-const DISC={swim:{label:'Swim',color:'#c62a3d'},bike:{label:'Bike',color:'#c62a3d'},run:{label:'Run',color:'#c62a3d'},strength:{label:'Strength',color:'#c62a3d'},rest:{label:'Rest',color:'#cdbfc6'}};
+const DISC={swim:{label:'Swim',color:'#c62a3d'},bike:{label:'Bike',color:'#c62a3d'},run:{label:'Run',color:'#c62a3d'},strength:{label:'Strength + Pilates',color:'#c62a3d'},rest:{label:'Rest',color:'#cdbfc6'}};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function addDays(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function lbl(iso){const d=new Date(iso+'T00:00:00');return DOW[d.getDay()]+' '+d.getDate()+' '+MO[d.getMonth()];}
@@ -257,6 +262,24 @@ function fmtT(min){min=Math.round(min);if(min<=0)return '0m';const h=Math.floor(
 // Ticks off any un-done, non-optional session on the same date + sport. Each
 // session is auto-ticked at most once (tracked in ivdone), so un-ticking a wrong
 // match sticks and won't be re-applied on the next check.
+// Manual link: fetch intervals.icu activities near a session's day and let the
+// user pick the right one (works regardless of sport, for stragglers auto-match missed).
+async function ivLinkFind(btn){
+  var id=btn.dataset.id,iso=btn.dataset.iso;
+  var list=btn.parentNode.querySelector('.ivlinklist');if(!list)return;
+  if(typeof window.__intervalsFetch!=='function'){list.innerHTML='<div class="ivlinkmsg">Cloud sync isn\'t ready — sign in first.</div>';return;}
+  btn.disabled=true;var lbl=btn.textContent;btn.textContent='Searching…';
+  var r=await window.__intervalsFetch(addDays(iso,-4),addDays(iso,4));
+  btn.disabled=false;btn.textContent=lbl;
+  if(r.error){list.innerHTML='<div class="ivlinkmsg">Couldn\'t load: '+esc(r.error)+'</div>';return;}
+  var acts=(r.activities||[]).slice().sort(function(a,b){return Math.abs(dayDiff(a.date,iso))-Math.abs(dayDiff(b.date,iso));});
+  if(!acts.length){list.innerHTML='<div class="ivlinkmsg">No intervals.icu activities near this day. If you just finished, give it a few minutes to sync to intervals.icu.</div>';return;}
+  list._acts=acts;
+  list.innerHTML=acts.map(function(a,i){var p=[];if(a.distance!=null&&a.distance>0)p.push((a.distance/1000).toFixed(1)+' km');if(a.moving_time!=null&&a.moving_time>0)p.push(Math.round(a.moving_time/60)+' min');return '<button class="ivlinkopt" data-i="'+i+'">'+esc(a.name||a.type||'Workout')+'<br><small>'+esc(shortd(a.date))+' · '+esc(a.type||'')+(p.length?' · '+p.join(' · '):'')+'</small></button>';}).join('');
+  list.querySelectorAll('.ivlinkopt').forEach(function(opt){opt.addEventListener('click',function(e){e.stopPropagation();ivLinkApply(id,list._acts[+opt.dataset.i]);});});
+}
+function ivLinkApply(id,a){if(!a)return;actuals[id]={dist:(a.distance!=null?a.distance:null),sec:(a.moving_time!=null?a.moving_time:null),name:a.name||''};progress[id]=true;ivdone[id]=true;save();saveActuals();saveIvdone();renderAll();showToast('Linked: '+(a.name||'workout'));}
+function ivLinkClear(id){delete actuals[id];delete progress[id];delete ivdone[id];save();saveActuals();saveIvdone();renderAll();showToast('Link cleared');}
 function weekIndexOf(dateIso){for(let wi=0;wi<WEEKS.length;wi++){const d=WEEKS[wi].days;if(!d.length)continue;if(dateIso>=d[0].iso&&dateIso<=d[d.length-1].iso)return wi;}return -1;}
 function dayDiff(a,b){return Math.round((Date.parse(a+'T00:00:00')-Date.parse(b+'T00:00:00'))/86400000);}
 // Match each intervals activity to a planned session of the SAME sport in the
@@ -313,7 +336,7 @@ function renderDist(){const el=$('distpc');if(!el)return;
     (dist?km(wk[k])+' wk · '+km(tot[k])+' total':fmtT(wkT[k])+' wk · '+fmtT(totT[k])+' total')+'</span></div>';
   const totMin=(o)=>o.swim+o.bike+o.run+o.strength;
   el.innerHTML='<div class="zrow" style="color:var(--faint);font-weight:600"><span class="zk" style="font-weight:600;color:var(--faint)">This week · plan total</span><span class="zv" style="color:var(--faint)">'+WEEKS[cur].name+'</span></div>'+
-    row('swim','Swim',true)+row('bike','Bike',true)+row('run','Run',true)+row('strength','Strength',false)+
+    row('swim','Swim',true)+row('bike','Bike',true)+row('run','Run',true)+row('strength','Strength + Pilates',false)+
     '<div class="zrow"><span class="zk">Total time</span><span class="zv">'+fmtT(totMin(wkT))+' wk · '+fmtT(totMin(totT))+' total</span></div>';}
 function renderStats(){const t=totalStats(),b=banked(),tot=Math.round(b.swim+b.bike+b.run);renderDist();const sl=$('statline');if(sl)sl.textContent=streak()+'-session streak · '+weeksDone()+'/'+WEEKS.length+' weeks done · '+tot+' km banked';const pp=$('progpc');if(pp)pp.innerHTML='<div class="zrow"><span class="zk">Sessions done</span><span class="zv">'+t.done+' / '+t.tot+'</span></div><div class="zrow"><span class="zk">Weeks completed</span><span class="zv">'+weeksDone()+' / '+WEEKS.length+'</span></div><div class="zrow"><span class="zk">Current streak</span><span class="zv">'+streak()+' sessions</span></div><div class="zrow"><span class="zk">Distance banked</span><span class="zv">swim '+Math.round(b.swim)+' · bike '+Math.round(b.bike)+' · run '+Math.round(b.run)+' km</span></div>';}
 function sid(wi,di,si){return WEEKS[wi].id+'-'+di+'-'+si;}
@@ -324,7 +347,7 @@ function todayISO(){const n=new Date();return n.getFullYear()+'-'+String(n.getMo
 function renderPills(){const el=$('pills');el.innerHTML='';WEEKS.forEach((w,wi)=>{const st=weekStats(wi),done=st.tot>0&&st.done===st.tot;const b=document.createElement('button');b.className='pill'+(wi===cur?' active':'')+(done?' done':'');b.innerHTML='<span class="tick">✓</span>'+w.name;b.onclick=()=>{cur=wi;renderAll();window.scrollTo({top:0,behavior:'smooth'});};el.appendChild(b);});}
 function weekMin(wi){let t=0;WEEKS[wi].days.forEach(d=>d.s.forEach(x=>{if(x.d!=='rest'&&!x.o)t+=estMin(x);}));return t;}
 function renderHead(){const w=WEEKS[cur],st=weekStats(cur),hrs=(weekMin(cur)/60).toFixed(1);$('wkhead').innerHTML='<h2>'+w.name+'</h2><div class="range">'+w.range+'</div>'+(w.note?'<div class="note">'+w.note+'</div>':'')+'<div class="wkprog">~'+hrs+' h this week · '+st.done+' / '+st.tot+' done</div><div class="loadbar wk">'+loadChips(weekLoad(cur),true)+'</div>';}
-function cardHTML(s){
+function cardHTML(s,iso){
   var m=DISC[s.d],id=s._id;var ed=edits[id]||{};
   var title=ed.t||s.t;var editNote=ed.note?'<div class="editnote">✎ Your change: '+esc(ed.note)+'</div>':'';
   var tagAdded=s.added?'<span class="badge-add">added</span>':'';
@@ -342,8 +365,12 @@ function cardHTML(s){
   var structPart=breakdown,dp=breakdown.indexOf('. ');if(dp>0){structPart=breakdown.slice(0,dp);}else if(breakdown.slice(-1)==='.'){structPart=breakdown.slice(0,-1);}var specMain=structPart?'<div class="spec-main">'+structPart+'</div>':'';
   var tips='<details class="sub"><summary>Tips &amp; how it should feel</summary><div class="subin"><div class="coach">'+coach(s)+'</div>'+(fuelNote?'<div class="fuel">'+fuelNote+'</div>':'')+'</div></details>';
   var logsub='<details class="sub"><summary>Log it</summary><div class="subin">'+log+'</div></details>';
+  var linksub='<details class="sub"><summary>Link an intervals.icu workout</summary><div class="subin">'
+    +'<button class="ivlinkbtn" data-id="'+id+'" data-iso="'+esc(iso||'')+'">🔗 Find my workouts for this day</button>'
+    +(A?'<button class="ivunlinkbtn" data-id="'+id+'">✕ clear link</button>':'')
+    +'<div class="ivlinklist" data-id="'+id+'"></div></div></details>';
   var editsub='<details class="sub"><summary>Edit / adjust</summary><div class="subin">'+editRow+'</div></details>';
-  var detail='<div class="detail">'+actNote+editNote+specMain+tips+logsub+editsub+'</div>';
+  var detail='<div class="detail">'+actNote+editNote+specMain+tips+logsub+linksub+editsub+'</div>';
   return '<div class="sess'+(done?' done':'')+(s.added?' added':'')+'" data-id="'+id+'" data-disc="'+s.d+'"><span class="accent" style="background:'+m.color+'"></span><div class="body"><div class="top"><span class="tag" style="color:'+m.color+';background:'+m.color+'1f">'+m.label+'</span><span class="ttl">'+title+'</span>'+tagAdded+tagEdited+(s.o?'<span class="opt">optional</span>':'')+'<span class="grip" title="Hold and drag to another day">⠿</span><span class="chev">⌄</span></div>'+detail+'</div><button class="check"'+(done?' style="background:'+m.color+';border-color:'+m.color+';color:#fff"':'')+'>✓</button></div>';
 }
 function renderWeek(){
@@ -354,7 +381,7 @@ function renderWeek(){
   w.days.forEach(function(day,di){
     var dEl=document.createElement('div');dEl.className='day'+(day.iso===t?' today':'');dEl.dataset.day=di;
     var html='<div class="day-label">'+day.label+(day.iso===t?'<span class="badge-today">Today</span>':'')+'</div>';
-    buckets[di].forEach(function(s){html+=cardHTML(s);});
+    buckets[di].forEach(function(s){html+=cardHTML(s,day.iso);});
     if(!buckets[di].length)html+='<div class="empty-day">— rest / free —</div>';
     html+='<button class="addbtn" data-day="'+di+'">+ add a session</button>';
     dEl.innerHTML=html;main.appendChild(dEl);
@@ -366,6 +393,8 @@ function bindWeek(main){
   main.querySelectorAll('.check').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();toggleDone(btn.closest('.sess'));});});
   main.querySelectorAll('.feltrange').forEach(function(rg){rg.addEventListener('input',function(){var id=rg.dataset.id;logs[id]=logs[id]||{};logs[id].felt=+rg.value;var v=rg.closest('.log').querySelector('.feltval');if(v)v.textContent=rg.value+' / 10';saveLogs();});});
   main.querySelectorAll('.lognote').forEach(function(n){n.addEventListener('input',function(){var id=n.dataset.id;logs[id]=logs[id]||{};logs[id].note=n.value;saveLogs();});});
+  main.querySelectorAll('.ivlinkbtn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();ivLinkFind(b);});});
+  main.querySelectorAll('.ivunlinkbtn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();ivLinkClear(b.dataset.id);});});
   main.querySelectorAll('.grip').forEach(function(g){attachDrag(g,main);});
   main.querySelectorAll('.addbtn').forEach(function(b){b.addEventListener('click',function(){addSession(+b.dataset.day);});});
   main.querySelectorAll('.editbtn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();editSession(b.dataset.id);});});
@@ -422,7 +451,7 @@ function attachDrag(grip,main){
 function toggleDone(el){const id=el.dataset.id;const on=!progress[id];if(on)progress[id]=true;else delete progress[id];const m=DISC[el.dataset.disc];el.classList.toggle('done',on);const c=el.querySelector('.check');c.style.cssText=on?'background:'+m.color+';border-color:'+m.color+';color:#fff':'';save();updateChrome();if(on){const st=weekStats(cur);if(st.tot>0&&st.done===st.tot)showToast('Week complete — nice work!');}}
 function coach(x){var t=x.t.toLowerCase(),d=x.d;if(d==='rest')return 'Rest is training too — this is when your body absorbs the work and gets stronger. Take it fully.';if(/race|70\.3/.test(t))return 'Race day. Trust your training. Breathe out in the water, settle into the bike, run your own race — and enjoy it.';if(/ftp test|threshold test|time trial/.test(t))return 'A benchmark, not a normal session. Warm up well, then hold the hardest STEADY, even effort you can for the whole thing — do not sprint the start or you will fade. Note your result and update your numbers after; this is what keeps your paces and watts honest. Do it on fresh legs.';var c='';if(d==='swim'){if(/endurance/.test(t))c='Long swim. Hold the same pace across every rep (or finish faster), and keep your form together — quality beats just surviving the metres — no stopping at the walls. Settle into a rhythm you could hold all day, breathe steadily, and practise sighting. This is what race day actually feels like.';else if(/speed|threshold|tempo/.test(t))c='Speed day — hold a faster pace than you could swim continuously, and keep your form together as it gets hard. Short rests are there so the quality stays high.';else if(/tempo|build/.test(t))c='Working swim — hold your form as the pace lifts. Smooth catch, steady rhythm, do not thrash.';else c='Easy and technical. Long relaxed stroke, exhale into the water, no rushing. Skill-building.';}else if(d==='bike'){if(/endurance/.test(t))c='Zone 2 — conversational. This ride builds the engine that carries your whole race. Steady 85–95 rpm, and practise eating and drinking.';else if(/opener/.test(t))c='Light and short — just waking the legs up. Do not turn it into a session.';else if(/easy/.test(t))c='Easy and light. Nothing hard here; keep it comfortable.';else if(/vo2/.test(t))c='Very hard, short reps — top-end fitness. Full recoveries between; it should feel near-maximal.';else if(/threshold/.test(t))c='Hard but holdable, right at your limit through each rep, easing right off in recoveries. In ERG the bike holds the watts — keep 85–95 rpm.';else if(/tempo/.test(t))c='Comfortably hard and controlled — working but sustainable. Steady cadence, relaxed breathing.';else c='Progressive — start easy and build the effort through each block. Smooth transitions.';}else if(d==='run'){if(/hill/.test(t))c='Hill reps — strong, controlled efforts up a moderate climb (not sprints), with an easy jog down to recover fully. Drive the arms, short quick steps. Builds leg strength and running economy, and is gentler on the body than flat speedwork.';else if(/endurance/.test(t))c='Easy, conversational — time on your feet matters more than speed. If in doubt, slow down.';else if(/race pace/.test(t))c='Lock into your goal 70.3 feel — controlled, not hard. This is pacing practice, so resist speeding up.';else if(/threshold/.test(t))c='Comfortably-hard reps right at your limit; ease off fully in the recoveries. Stay relaxed and tall.';else if(/tempo/.test(t))c='Controlled and rhythmic in the tempo blocks — a few words but not a chat. Hold it steady.';else if(/build/.test(t))c='Start easy and lift gradually to tempo by the end. Smooth, no surges.';else c='Genuinely easy — conversational and relaxed. Easy days are what let your hard days be hard.';}else if(d==='strength'){if(/pilates/.test(t))c='Your hot Pilates class — mobility, core and control in the heat. Rehydrate well afterwards, and keep the swim that follows easy since your core will be tired.';else if(/durability/.test(t))c='Single-leg work, mobility, core and prehab. This keeps you injury-free — move well, do not chase fatigue.';else c='Full-body strength. Controlled reps, form over load. Leave a couple of reps in the tank.';}return c;}
 function updateChrome(){const t=totalStats(),pct=t.tot?Math.round(t.done/t.tot*100):0;$('ovFill').style.width=pct+'%';$('ovText').innerHTML='<b>'+t.done+'</b> of '+t.tot+' sessions';$('ovPct').textContent=pct+'%';renderPills();renderHead();renderStats();}
-function loadChips(a,dec){const order=[['swim','Swim'],['bike','Bike'],['run','Run'],['strength','Strength']];return order.map(p=>'<span class="lchip disc-'+p[0]+'"><span class="ld" style="background:'+DISC[p[0]].color+'"></span><span class="ll">'+p[1]+'</span> <span class="lh">'+(dec?(a[p[0]]/60).toFixed(1):Math.round(a[p[0]]/60))+'h</span></span>').join('');}
+function loadChips(a,dec){const order=[['swim','Swim'],['bike','Bike'],['run','Run'],['strength','Strength + Pilates']];return order.map(p=>'<span class="lchip disc-'+p[0]+'"><span class="ld" style="background:'+DISC[p[0]].color+'"></span><span class="ll">'+p[1]+'</span> <span class="lh">'+(dec?(a[p[0]]/60).toFixed(1):Math.round(a[p[0]]/60))+'h</span></span>').join('');}
 function weekLoad(wi){const a={swim:0,bike:0,run:0,strength:0};WEEKS[wi].days.forEach(d=>d.s.forEach(x=>{if(x.d==='rest'||x.o)return;if(a[x.d]!==undefined)a[x.d]+=estMin(x);}));return a;}
 function renderLoad(){$('loadbar').innerHTML=loadChips(computeLoad(),false);}
 function renderAll(){renderPills();renderHead();renderWeek();updateChrome();}
