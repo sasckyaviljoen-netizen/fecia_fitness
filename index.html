@@ -265,20 +265,24 @@ function dayDiff(a,b){return Math.round((Date.parse(a+'T00:00:00')-Date.parse(b+
 // un-ticking a wrong match sticks. Actuals are recorded (and enriched) too.
 window.__applyIntervalsActivities=function(acts){
   if(!Array.isArray(acts)||!acts.length)return 0;
+  const clean=acts.filter(a=>a.disc&&a.date);
   const slots={};
   WEEKS.forEach((w,wi)=>{slots[wi]=[];w.days.forEach((day,di)=>day.s.forEach((x,si)=>{if(isReq(x))slots[wi].push({id:sid(wi,di,si),iso:day.iso,disc:x.d});}));});
-  const consumed={};let n=0,changed=false;
-  const sorted=acts.slice().filter(a=>a.disc&&a.date).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-  sorted.forEach(act=>{
-    const wi=weekIndexOf(act.date);if(wi<0)return;
-    let best=null,bestDiff=1e9;
-    (slots[wi]||[]).forEach(s=>{if(s.disc!==act.disc||consumed[s.id])return;const diff=Math.abs(dayDiff(s.iso,act.date));if(diff<bestDiff){bestDiff=diff;best=s;}});
-    if(!best)return;
-    consumed[best.id]=true;
-    const na={dist:(act.dist!=null?act.dist:null),sec:(act.sec!=null?act.sec:null),name:act.name||''};
-    const o=actuals[best.id];
-    if(!o||o.dist!==na.dist||o.sec!==na.sec||o.name!==na.name){actuals[best.id]=na;changed=true;}
-    if(!progress[best.id]&&!ivdone[best.id]){progress[best.id]=true;ivdone[best.id]=true;n++;changed=true;}
+  // Build every (activity, same-sport session in same week) pair, then assign the
+  // closest pairs first — so an exact-day match always wins over a nearby one and
+  // no earlier activity can steal a session that another activity matches exactly.
+  const pairs=[];
+  clean.forEach((a,ai)=>{const wi=weekIndexOf(a.date);if(wi<0)return;(slots[wi]||[]).forEach(s=>{if(s.disc===a.disc)pairs.push({ai,s,diff:Math.abs(dayDiff(s.iso,a.date))});});});
+  pairs.sort((p,q)=>p.diff-q.diff||(p.s.iso<q.s.iso?-1:p.s.iso>q.s.iso?1:0));
+  const usedAct={},usedSlot={};let n=0,changed=false;
+  pairs.forEach(p=>{
+    if(usedAct[p.ai]||usedSlot[p.s.id])return;
+    usedAct[p.ai]=true;usedSlot[p.s.id]=true;
+    const a=clean[p.ai];
+    const na={dist:(a.dist!=null?a.dist:null),sec:(a.sec!=null?a.sec:null),name:a.name||''};
+    const o=actuals[p.s.id];
+    if(!o||o.dist!==na.dist||o.sec!==na.sec||o.name!==na.name){actuals[p.s.id]=na;changed=true;}
+    if(!progress[p.s.id]&&!ivdone[p.s.id]){progress[p.s.id]=true;ivdone[p.s.id]=true;n++;changed=true;}
   });
   if(changed){save();saveIvdone();saveActuals();renderAll();}
   if(n)showToast(n+' session'+(n>1?'s':'')+' detected from intervals.icu');
