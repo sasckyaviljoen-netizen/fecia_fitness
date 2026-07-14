@@ -54,8 +54,19 @@
       var res = await sb.functions.invoke("intervals-sync", { body: { oldest: oldest, newest: newest } });
 
       if (res.error) {
-        console.warn("intervals-sync error", res.error);
-        setStatus("Couldn't reach intervals.icu (is the function deployed?).");
+        var er = res.error, extra = "";
+        try {
+          var ctx = er.context;
+          if (ctx && typeof ctx.status !== "undefined") extra += " HTTP " + ctx.status;
+          if (ctx && typeof ctx.clone === "function") {
+            var bodyTxt = await ctx.clone().text();
+            try { var j = JSON.parse(bodyTxt); if (j && j.error) extra += " — " + j.error; }
+            catch (_) { if (bodyTxt) extra += " — " + bodyTxt.slice(0, 140); }
+          }
+        } catch (_) {}
+        console.warn("intervals-sync error", er, extra);
+        setStatus("intervals.icu error" + (extra || ": " + (er.message || "unreachable")) +
+          ". Check the function is named exactly 'intervals-sync', deployed, and has the two secrets.");
         return;
       }
       var data = res.data || {};
