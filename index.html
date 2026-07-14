@@ -160,6 +160,11 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       </div></details>
       <details class="panel"><summary>Training zones</summary><div class="pc" id="zonespc"></div></details>
       <details class="panel"><summary>Progress</summary><div class="pc progpc" id="progpc"></div></details>
+      <details class="panel"><summary>intervals.icu auto-detect</summary><div class="pc">
+        <div id="ivStatus" style="margin-bottom:12px;color:var(--text);font-weight:600">Checking…</div>
+        <button id="ivCheck" style="background:var(--text);color:var(--bg);border:none;border-radius:11px;padding:12px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;width:100%">Check intervals.icu now</button>
+        <div class="sethint">Ticks off any planned session you completed on intervals.icu — matched by same day + sport. Auto-runs when the app opens and syncs. If a match is wrong, just un-tick it; it won't come back.</div>
+      </div></details>
       <details class="panel"><summary>How this maps to your apps</summary><div class="pc">
         Runs → build in intervals.icu, auto-syncs to your watch. Swims → pick Pool Swim and follow the set here. Indoor bike → Wattbike Hub (free) or MyWhoosh; easy/long rides are just "ride at Z2", only the interval days need a structured workout.
       </div></details>
@@ -217,18 +222,38 @@ function buildWeek(w){
 }
 const WEEKS=PLAN.map(buildWeek);
 
-const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1';
-let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},cur=0;
+const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1';
+let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},cur=0;
 const $=id=>document.getElementById(id);
 async function getK(k){try{if(window.storage){const r=await window.storage.get(k);return r&&r.value?JSON.parse(r.value):null;}else{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}}catch(e){return null;}}
 function setK(k,o){try{if(window.storage)window.storage.set(k,JSON.stringify(o));else localStorage.setItem(k,JSON.stringify(o));}catch(e){}}
-async function load(){try{const p=await getK(KEY);if(p)progress=p;const s=await getK(SKEY);if(s)Object.assign(settings,s);const l=await getK(LKEY);if(l)logs=l;const mv=await getK(MKEY);if(mv)moves=mv;const ex=await getK(XKEY);if(ex)extra=ex;const ed=await getK(EKEY);if(ed)edits=ed;}catch(e){}}
+async function load(){try{const p=await getK(KEY);if(p)progress=p;const s=await getK(SKEY);if(s)Object.assign(settings,s);const l=await getK(LKEY);if(l)logs=l;const mv=await getK(MKEY);if(mv)moves=mv;const ex=await getK(XKEY);if(ex)extra=ex;const ed=await getK(EKEY);if(ed)edits=ed;const iv=await getK(IVKEY);if(iv)ivdone=iv;}catch(e){}}
 function save(){setK(KEY,progress);}
 function saveSettings(){setK(SKEY,settings);}
 function saveLogs(){setK(LKEY,logs);}
 function saveMoves(){setK(MKEY,moves);}
 function saveExtra(){setK(XKEY,extra);}
 function saveEdits(){setK(EKEY,edits);}
+function saveIvdone(){setK(IVKEY,ivdone);}
+// Called by intervals.js with [{date:'YYYY-MM-DD', disc:'run'|'bike'|'swim'|'strength'}].
+// Ticks off any un-done, non-optional session on the same date + sport. Each
+// session is auto-ticked at most once (tracked in ivdone), so un-ticking a wrong
+// match sticks and won't be re-applied on the next check.
+window.__applyIntervalsActivities=function(acts){
+  if(!Array.isArray(acts)||!acts.length)return 0;
+  const t=todayISO();const used={};let n=0;
+  WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{
+    if(!isReq(x))return;const id=sid(wi,di,si);
+    if(progress[id]||ivdone[id])return;      // already done, or already auto-detected once
+    if(day.iso>t)return;                       // never tick future sessions
+    for(let k=0;k<acts.length;k++){
+      if(used[k])continue;
+      if(acts[k].date===day.iso&&acts[k].disc===x.d){progress[id]=true;ivdone[id]=true;used[k]=true;n++;break;}
+    }
+  })));
+  if(n){save();saveIvdone();renderAll();showToast(n+' session'+(n>1?'s':'')+' detected from intervals.icu');}
+  return n;
+};
 function paceSecs(p){const m=(''+p).match(/(\d+):(\d{2})/);return m?(+m[1]*60+ +m[2]):0;}
 function ratios(){return {f:(settings.ftp||150)/150,r:(paceSecs(settings.run)||315)/315,s:(paceSecs(settings.swim)||140)/140};}
 function sw(str,r){return str.replace(/(\d+)\s*(?:[–-]\s*(\d+))?\s*W\b/g,(mm,a,b)=>{const A=Math.round(a*r/5)*5;return b?(A+'–'+Math.round(b*r/5)*5+' W'):(A+' W');});}
@@ -360,9 +385,12 @@ window.__rehydrate=function(){hydrate(false);};
 (async function(){await hydrate(true);
   const sf=$('setFtp'),sr=$('setRun'),ss=$('setSwim');
   const sb=$('saveSet');if(sb)sb.onclick=()=>{const f=parseInt(sf.value,10);if(f>50&&f<600)settings.ftp=f;if(/^\d{1,2}:\d{2}$/.test((sr.value||'').trim()))settings.run=sr.value.trim();if(/^\d{1,2}:\d{2}$/.test((ss.value||'').trim()))settings.swim=ss.value.trim();saveSettings();renderZones();renderAll();showToast('Targets updated');};
-  $('reset').onclick=()=>{if(confirm('Clear all your ticked-off sessions? This cannot be undone.')){progress={};save();renderAll();}};var rm=$('resetMoves');if(rm)rm.onclick=()=>{if(confirm('Put every session back on its original day?')){moves={};saveMoves();renderAll();}};
+  $('reset').onclick=()=>{if(confirm('Clear all your ticked-off sessions? This cannot be undone.')){progress={};ivdone={};save();saveIvdone();renderAll();}};var rm=$('resetMoves');if(rm)rm.onclick=()=>{if(confirm('Put every session back on its original day?')){moves={};saveMoves();renderAll();}};
 })();
 </script>
+
+<!-- intervals.icu auto-detect: loads after the app so window.__applyIntervalsActivities exists. -->
+<script src="intervals.js"></script>
 
 <!-- Register the service worker so the app installs & works offline on iOS. -->
 <script>

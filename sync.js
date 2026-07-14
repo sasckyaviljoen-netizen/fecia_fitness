@@ -66,6 +66,9 @@
     } catch (e) { console.warn("Supabase init failed", e); sb = null; }
   }
 
+  // Expose the signed-in client + user for the intervals.icu module.
+  window.__cloud = { client: function () { return sb; }, user: function () { return user; } };
+
   function online() { return navigator.onLine !== false; }
 
   /* Pull every row for this user and apply last-write-wins per key. */
@@ -123,6 +126,8 @@
     setStatus("syncing");
     return pull().then(pushDirty).then(function () {
       writeJSON(LASTSYNC_KEY, nowISO());
+      // Fire-and-forget: detect completed workouts from intervals.icu.
+      if (window.__intervalsSync) { try { window.__intervalsSync(false); } catch (e) {} }
     }).finally(function () { syncing = false; renderStatus(); });
   }
   window.__syncNow = sync;

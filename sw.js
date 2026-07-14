@@ -2,7 +2,7 @@
  *  App-shell caching so the tracker installs and runs offline on iOS.
  *  Bump CACHE when you change cached assets to force an update.
  */
-var CACHE = "r703-v2";
+var CACHE = "r703-v3";
 
 // Relative paths resolve against the SW scope, so this works at a subpath too
 // (e.g. username.github.io/fecia_fitness/).
@@ -11,6 +11,7 @@ var SHELL = [
   "index.html",
   "config.js",
   "sync.js",
+  "intervals.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
