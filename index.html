@@ -267,7 +267,12 @@ window.__applyIntervalsActivities=function(acts){
   if(!Array.isArray(acts)||!acts.length)return 0;
   const clean=acts.filter(a=>a.disc&&a.date);
   const slots={};
-  WEEKS.forEach((w,wi)=>{slots[wi]=[];w.days.forEach((day,di)=>day.s.forEach((x,si)=>{if(isReq(x))slots[wi].push({id:sid(wi,di,si),iso:day.iso,disc:x.d});}));});
+  WEEKS.forEach((w,wi)=>{slots[wi]=[];w.days.forEach((day,di)=>day.s.forEach((x,si)=>{
+    if(!isReq(x))return;const id=sid(wi,di,si);
+    const md=(moves[id]!==undefined?moves[id]:di);           // use the day it was dragged to
+    const eff=(w.days[md]&&w.days[md].iso)||day.iso;
+    slots[wi].push({id:id,iso:eff,disc:x.d});
+  }));});
   // Build every (activity, same-sport session in same week) pair, then assign the
   // closest pairs first — so an exact-day match always wins over a nearby one and
   // no earlier activity can steal a session that another activity matches exactly.
