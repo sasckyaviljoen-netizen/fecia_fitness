@@ -38,14 +38,18 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
   // --- verify the caller is signed in to this project's auth ---
+  // Server-side we must pass the token to getUser() explicitly — the no-arg form
+  // looks for a browser session that doesn't exist here and returns 401.
   const authHeader = req.headers.get("Authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
   const supaUrl = Deno.env.get("SUPABASE_URL")!;
   const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const supa = createClient(supaUrl, anon, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) return json({ error: "unauthorized" }, 401);
+  const supa = createClient(supaUrl, anon);
+  const { data: { user }, error: authErr } = await supa.auth.getUser(token);
+  if (!user) {
+    console.error("auth check failed:", authErr && authErr.message);
+    return json({ error: "unauthorized" }, 401);
+  }
 
   // --- config ---
   const athlete = Deno.env.get("INTERVALS_ATHLETE_ID");
