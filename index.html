@@ -470,8 +470,17 @@ window.__rehydrate=function(){hydrate(false);};
 <!-- Register the service worker so the app installs & works offline on iOS. -->
 <script>
 if('serviceWorker' in navigator){
+  // When a new service worker takes control, reload once so the fresh HTML/JS/CSS
+  // actually load — otherwise iOS keeps showing the old cached build.
+  var __refreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(__refreshing)return;__refreshing=true;window.location.reload();
+  });
   window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').catch(function(e){console.warn('SW failed',e);});
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      reg.update();                         // check for a new version on every launch
+      setInterval(function(){reg.update();},60*60*1000);
+    }).catch(function(e){console.warn('SW failed',e);});
   });
 }
 </script>
