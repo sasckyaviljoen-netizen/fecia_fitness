@@ -257,26 +257,29 @@ function fmtT(min){min=Math.round(min);if(min<=0)return '0m';const h=Math.floor(
 // Ticks off any un-done, non-optional session on the same date + sport. Each
 // session is auto-ticked at most once (tracked in ivdone), so un-ticking a wrong
 // match sticks and won't be re-applied on the next check.
+function weekIndexOf(dateIso){for(let wi=0;wi<WEEKS.length;wi++){const d=WEEKS[wi].days;if(!d.length)continue;if(dateIso>=d[0].iso&&dateIso<=d[d.length-1].iso)return wi;}return -1;}
+function dayDiff(a,b){return Math.round((Date.parse(a+'T00:00:00')-Date.parse(b+'T00:00:00'))/86400000);}
+// Match each intervals activity to a planned session of the SAME sport in the
+// SAME training week (nearest day wins) — forgiving of day shifts, and it
+// backfills past weeks. Auto-tick happens at most once per session (ivdone), so
+// un-ticking a wrong match sticks. Actuals are recorded (and enriched) too.
 window.__applyIntervalsActivities=function(acts){
   if(!Array.isArray(acts)||!acts.length)return 0;
-  const t=todayISO();const used={};let n=0,changed=false;
-  WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{
-    if(!isReq(x))return;const id=sid(wi,di,si);
-    if(day.iso>t)return;                       // never touch future sessions
-    for(let k=0;k<acts.length;k++){
-      if(used[k])continue;
-      if(acts[k].date===day.iso&&acts[k].disc===x.d){
-        used[k]=true;
-        // record the actual distance/time (enrich even a manually-ticked session)
-        const na={dist:(acts[k].dist!=null?acts[k].dist:null),sec:(acts[k].sec!=null?acts[k].sec:null),name:acts[k].name||''};
-        const o=actuals[id];
-        if(!o||o.dist!==na.dist||o.sec!==na.sec||o.name!==na.name){actuals[id]=na;changed=true;}
-        // auto-tick at most once per session (un-ticking a wrong match sticks)
-        if(!progress[id]&&!ivdone[id]){progress[id]=true;ivdone[id]=true;n++;changed=true;}
-        break;
-      }
-    }
-  })));
+  const slots={};
+  WEEKS.forEach((w,wi)=>{slots[wi]=[];w.days.forEach((day,di)=>day.s.forEach((x,si)=>{if(isReq(x))slots[wi].push({id:sid(wi,di,si),iso:day.iso,disc:x.d});}));});
+  const consumed={};let n=0,changed=false;
+  const sorted=acts.slice().filter(a=>a.disc&&a.date).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  sorted.forEach(act=>{
+    const wi=weekIndexOf(act.date);if(wi<0)return;
+    let best=null,bestDiff=1e9;
+    (slots[wi]||[]).forEach(s=>{if(s.disc!==act.disc||consumed[s.id])return;const diff=Math.abs(dayDiff(s.iso,act.date));if(diff<bestDiff){bestDiff=diff;best=s;}});
+    if(!best)return;
+    consumed[best.id]=true;
+    const na={dist:(act.dist!=null?act.dist:null),sec:(act.sec!=null?act.sec:null),name:act.name||''};
+    const o=actuals[best.id];
+    if(!o||o.dist!==na.dist||o.sec!==na.sec||o.name!==na.name){actuals[best.id]=na;changed=true;}
+    if(!progress[best.id]&&!ivdone[best.id]){progress[best.id]=true;ivdone[best.id]=true;n++;changed=true;}
+  });
   if(changed){save();saveIvdone();saveActuals();renderAll();}
   if(n)showToast(n+' session'+(n>1?'s':'')+' detected from intervals.icu');
   return n;
