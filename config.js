@@ -10,6 +10,6 @@
  *    - "anon public" key  -> SUPABASE_ANON_KEY
  */
 window.APP_CONFIG = {
-  SUPABASE_URL: "",       // e.g. "https://abcdefgh.supabase.co"
-  SUPABASE_ANON_KEY: ""   // e.g. "eyJhbGciOiJIUzI1NiIsInR..."
+  SUPABASE_URL: "https://ydzehsnkcsvinvexcqxi.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkemVoc25rY3N2aW52ZXhjcXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjk1NjQsImV4cCI6MjA5OTYwNTU2NH0.vgVteVk3QPKEwc20mPlYaDHoq3AN0fgSDc-5WzE8x8U"
 };
