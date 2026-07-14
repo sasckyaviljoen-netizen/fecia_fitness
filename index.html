@@ -15,7 +15,6 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display&family=Space+Mono:wght@700&family=Archivo+Black&display=swap');
 :root{
   --bg:#fce9ef;--surface:#ffffff;--surface2:#fdf2f6;--line:#f3dce4;--text:#b32a3b;--muted:#9c868f;--faint:#c9b4bc;
   --swim:#8fc4d4;--bike:#e6ba8c;--run:#a9d0a0;--strength:#cbb6e6;--rest:#cdbfc6;--good:#e0374d;
@@ -65,12 +64,6 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 .sess .body{flex:1;min-width:0}
 .sess .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sess .tag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:7px}
-/* Each sport is the same red, distinguished by its own font. */
-.sess[data-disc="swim"] .ttl,.sess[data-disc="swim"] .tag,.lchip.disc-swim .ll{font-family:'Bebas Neue',sans-serif;letter-spacing:.03em}
-.sess[data-disc="bike"] .ttl,.sess[data-disc="bike"] .tag,.lchip.disc-bike .ll{font-family:'DM Serif Display',Georgia,serif}
-.sess[data-disc="run"] .ttl,.sess[data-disc="run"] .tag,.lchip.disc-run .ll{font-family:'Space Mono',ui-monospace,monospace}
-.sess[data-disc="strength"] .ttl,.sess[data-disc="strength"] .tag,.lchip.disc-strength .ll{font-family:'Archivo Black',sans-serif}
-.sess[data-disc="swim"] .ttl,.sess[data-disc="run"] .ttl{font-size:15.5px}
 .actnote{font-size:12px;color:var(--good);font-weight:700;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:9px;line-height:1.5}
 .ivlinkbtn,.ivunlinkbtn{background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;padding:8px 11px;border-radius:9px;cursor:pointer;margin:0 6px 6px 0}
 .ivlinkopt{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:7px;font-family:inherit;font-size:13px;color:var(--text);font-weight:700;cursor:pointer;line-height:1.5}
