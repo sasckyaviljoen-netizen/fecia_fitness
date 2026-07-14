@@ -11,9 +11,9 @@ from PIL import Image, ImageDraw, ImageFont
 OUT = os.path.join(os.path.dirname(__file__), "..", "icons")
 FONT = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
 
-BG = (52, 50, 44)        # --text  #34322c  (matches app chrome)
-RUN = (123, 174, 116)    # --run green accent
-CREAM = (244, 243, 239)  # --bg
+BG = (249, 219, 226)     # light pink background  #f9dbe2
+RED = (224, 49, 65)      # red wordmark            #e03141
+RED_DEEP = (193, 18, 31) # deeper red accent bar   #c1121f
 
 
 def rounded(size, radius_ratio, pad_ratio, bg):
@@ -37,7 +37,7 @@ def draw_mark(img, pad):
     bar_h = max(3, int(inner * 0.035))
     bx = (size - bar_w) // 2
     by = pad + int(inner * 0.26)
-    d.rounded_rectangle([bx, by, bx + bar_w, by + bar_h], radius=bar_h // 2, fill=RUN)
+    d.rounded_rectangle([bx, by, bx + bar_w, by + bar_h], radius=bar_h // 2, fill=RED_DEEP)
 
     # the number
     text = "70.3"
@@ -47,7 +47,7 @@ def draw_mark(img, pad):
     tw, th = tb[2] - tb[0], tb[3] - tb[1]
     tx = (size - tw) // 2 - tb[0]
     ty = pad + int(inner * 0.40) - tb[1]
-    d.text((tx, ty), text, font=font, fill=CREAM)
+    d.text((tx, ty), text, font=font, fill=RED)
 
     # small "IRONMAN"-ish eyebrow removed for clarity; add tri sub-label
     sub = "TRI"
@@ -57,7 +57,7 @@ def draw_mark(img, pad):
     sw = sb[2] - sb[0]
     sx = (size - sw) // 2 - sb[0]
     sy = pad + int(inner * 0.80)
-    d.text((sx, sy), sub, font=font2, fill=RUN)
+    d.text((sx, sy), sub, font=font2, fill=RED)
 
 
 def make(size, name, maskable=False):
@@ -85,7 +85,7 @@ def make_favicon():
     font = ImageFont.truetype(FONT, 30)
     tb = d.textbbox((0, 0), "70", font=font)
     tw = tb[2] - tb[0]
-    d.text(((64 - tw) // 2 - tb[0], 16), "70", font=font, fill=CREAM)
+    d.text(((64 - tw) // 2 - tb[0], 16), "70", font=font, fill=RED)
     img.save(os.path.join(OUT, "favicon.png"))
     print("wrote favicon.png")
 
