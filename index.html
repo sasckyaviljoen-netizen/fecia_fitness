@@ -15,6 +15,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display&family=Space+Mono:wght@700&family=Archivo+Black&display=swap');
 :root{
   --bg:#fce9ef;--surface:#ffffff;--surface2:#fdf2f6;--line:#f3dce4;--text:#b32a3b;--muted:#9c868f;--faint:#c9b4bc;
   --swim:#8fc4d4;--bike:#e6ba8c;--run:#a9d0a0;--strength:#cbb6e6;--rest:#cdbfc6;--good:#e0374d;
@@ -64,6 +65,13 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 .sess .body{flex:1;min-width:0}
 .sess .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sess .tag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:7px}
+/* Each sport is the same red, distinguished by its own font. */
+.sess[data-disc="swim"] .ttl,.sess[data-disc="swim"] .tag,.lchip.disc-swim .ll{font-family:'Bebas Neue',sans-serif;letter-spacing:.03em}
+.sess[data-disc="bike"] .ttl,.sess[data-disc="bike"] .tag,.lchip.disc-bike .ll{font-family:'DM Serif Display',Georgia,serif}
+.sess[data-disc="run"] .ttl,.sess[data-disc="run"] .tag,.lchip.disc-run .ll{font-family:'Space Mono',ui-monospace,monospace}
+.sess[data-disc="strength"] .ttl,.sess[data-disc="strength"] .tag,.lchip.disc-strength .ll{font-family:'Archivo Black',sans-serif}
+.sess[data-disc="swim"] .ttl,.sess[data-disc="run"] .ttl{font-size:15.5px}
+.actnote{font-size:12px;color:var(--good);font-weight:700;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:9px;line-height:1.5}
 .sess .ttl{font-weight:600;font-size:14.5px;color:var(--text)}
 .sess .opt{font-size:9.5px;color:var(--faint);border:1px solid var(--line);padding:1px 6px;border-radius:99px;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
 .sess .chev{margin-left:8px;color:var(--faint);font-size:15px;transition:transform .25s;line-height:1}
@@ -160,6 +168,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       </div></details>
       <details class="panel"><summary>Training zones</summary><div class="pc" id="zonespc"></div></details>
       <details class="panel"><summary>Progress</summary><div class="pc progpc" id="progpc"></div></details>
+      <details class="panel"><summary>Distance &amp; time done</summary><div class="pc progpc" id="distpc"></div></details>
       <details class="panel"><summary>intervals.icu auto-detect</summary><div class="pc">
         <div id="ivStatus" style="margin-bottom:12px;color:var(--text);font-weight:600">Checking…</div>
         <button id="ivCheck" style="background:var(--text);color:var(--bg);border:none;border-radius:11px;padding:12px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;width:100%">Check intervals.icu now</button>
@@ -186,7 +195,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <script>
 const RACE=new Date(2026,10,22);
-const DISC={swim:{label:'Swim',color:'#8fc4d4'},bike:{label:'Bike',color:'#e6ba8c'},run:{label:'Run',color:'#a9d0a0'},strength:{label:'Strength',color:'#cbb6e6'},rest:{label:'Rest',color:'#cdbfc6'}};
+const DISC={swim:{label:'Swim',color:'#c62a3d'},bike:{label:'Bike',color:'#c62a3d'},run:{label:'Run',color:'#c62a3d'},strength:{label:'Strength',color:'#c62a3d'},rest:{label:'Rest',color:'#cdbfc6'}};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function addDays(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function lbl(iso){const d=new Date(iso+'T00:00:00');return DOW[d.getDay()]+' '+d.getDate()+' '+MO[d.getMonth()];}
@@ -222,12 +231,12 @@ function buildWeek(w){
 }
 const WEEKS=PLAN.map(buildWeek);
 
-const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1';
-let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},cur=0;
+const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1',AKEY='tri-actuals-v1';
+let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},actuals={},cur=0;
 const $=id=>document.getElementById(id);
 async function getK(k){try{if(window.storage){const r=await window.storage.get(k);return r&&r.value?JSON.parse(r.value):null;}else{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}}catch(e){return null;}}
 function setK(k,o){try{if(window.storage)window.storage.set(k,JSON.stringify(o));else localStorage.setItem(k,JSON.stringify(o));}catch(e){}}
-async function load(){try{const p=await getK(KEY);if(p)progress=p;const s=await getK(SKEY);if(s)Object.assign(settings,s);const l=await getK(LKEY);if(l)logs=l;const mv=await getK(MKEY);if(mv)moves=mv;const ex=await getK(XKEY);if(ex)extra=ex;const ed=await getK(EKEY);if(ed)edits=ed;const iv=await getK(IVKEY);if(iv)ivdone=iv;}catch(e){}}
+async function load(){try{const p=await getK(KEY);if(p)progress=p;const s=await getK(SKEY);if(s)Object.assign(settings,s);const l=await getK(LKEY);if(l)logs=l;const mv=await getK(MKEY);if(mv)moves=mv;const ex=await getK(XKEY);if(ex)extra=ex;const ed=await getK(EKEY);if(ed)edits=ed;const iv=await getK(IVKEY);if(iv)ivdone=iv;const ac=await getK(AKEY);if(ac)actuals=ac;}catch(e){}}
 function save(){setK(KEY,progress);}
 function saveSettings(){setK(SKEY,settings);}
 function saveLogs(){setK(LKEY,logs);}
@@ -235,23 +244,41 @@ function saveMoves(){setK(MKEY,moves);}
 function saveExtra(){setK(XKEY,extra);}
 function saveEdits(){setK(EKEY,edits);}
 function saveIvdone(){setK(IVKEY,ivdone);}
+function saveActuals(){setK(AKEY,actuals);}
+// Actual distance (km) / time (min) for a session: intervals.icu value if we have
+// it, otherwise the plan estimate. Keeps totals honest as real workouts log.
+function actKm(id,x){const a=actuals[id];if(a&&a.dist!=null)return a.dist/1000;return distOf(x);}
+function actMin(id,x){const a=actuals[id];if(a&&a.sec!=null)return a.sec/60;return estMin(x);}
+// Actual-aware done distance/time per discipline. wi=null => whole plan.
+function distByDisc(wi){const a={swim:0,bike:0,run:0,strength:0};const ws=(wi==null)?WEEKS.map((w,i)=>i):[wi];ws.forEach(w=>WEEKS[w].days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(w,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actKm(id,x);})));return a;}
+function timeByDisc(wi){const a={swim:0,bike:0,run:0,strength:0};const ws=(wi==null)?WEEKS.map((w,i)=>i):[wi];ws.forEach(w=>WEEKS[w].days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(w,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actMin(id,x);})));return a;}
+function fmtT(min){min=Math.round(min);if(min<=0)return '0m';const h=Math.floor(min/60),m=min%60;return h?(h+'h'+(m?' '+m+'m':'')):(m+'m');}
 // Called by intervals.js with [{date:'YYYY-MM-DD', disc:'run'|'bike'|'swim'|'strength'}].
 // Ticks off any un-done, non-optional session on the same date + sport. Each
 // session is auto-ticked at most once (tracked in ivdone), so un-ticking a wrong
 // match sticks and won't be re-applied on the next check.
 window.__applyIntervalsActivities=function(acts){
   if(!Array.isArray(acts)||!acts.length)return 0;
-  const t=todayISO();const used={};let n=0;
+  const t=todayISO();const used={};let n=0,changed=false;
   WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{
     if(!isReq(x))return;const id=sid(wi,di,si);
-    if(progress[id]||ivdone[id])return;      // already done, or already auto-detected once
-    if(day.iso>t)return;                       // never tick future sessions
+    if(day.iso>t)return;                       // never touch future sessions
     for(let k=0;k<acts.length;k++){
       if(used[k])continue;
-      if(acts[k].date===day.iso&&acts[k].disc===x.d){progress[id]=true;ivdone[id]=true;used[k]=true;n++;break;}
+      if(acts[k].date===day.iso&&acts[k].disc===x.d){
+        used[k]=true;
+        // record the actual distance/time (enrich even a manually-ticked session)
+        const na={dist:(acts[k].dist!=null?acts[k].dist:null),sec:(acts[k].sec!=null?acts[k].sec:null),name:acts[k].name||''};
+        const o=actuals[id];
+        if(!o||o.dist!==na.dist||o.sec!==na.sec||o.name!==na.name){actuals[id]=na;changed=true;}
+        // auto-tick at most once per session (un-ticking a wrong match sticks)
+        if(!progress[id]&&!ivdone[id]){progress[id]=true;ivdone[id]=true;n++;changed=true;}
+        break;
+      }
     }
   })));
-  if(n){save();saveIvdone();renderAll();showToast(n+' session'+(n>1?'s':'')+' detected from intervals.icu');}
+  if(changed){save();saveIvdone();saveActuals();renderAll();}
+  if(n)showToast(n+' session'+(n>1?'s':'')+' detected from intervals.icu');
   return n;
 };
 function paceSecs(p){const m=(''+p).match(/(\d+):(\d{2})/);return m?(+m[1]*60+ +m[2]):0;}
@@ -262,12 +289,21 @@ function scaleSpec(x){let s=x.x||'';const R=ratios();s=sw(s,R.f);if(x.d==='run')
 function esc(s){return (''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function zoneRows(){const R=ratios(),ftp=settings.ftp||150;const run=sp('easy 6:00–6:20 · threshold 5:10–5:20 · race pace 5:45',R.r);const swim=sp('easy 2:30–2:45 · steady 2:15–2:25',R.s);const rd=n=>Math.round(n/5)*5;const z2=rd(.56*ftp)+'–'+rd(.75*ftp),sst=rd(.88*ftp)+'–'+rd(.94*ftp),th=rd(.91*ftp)+'–'+rd(1.05*ftp);return '<div class="zrow"><span class="zk">Run /km</span><span class="zv">'+run+'</span></div><div class="zrow"><span class="zk">Swim /100m</span><span class="zv">'+swim+'</span></div><div class="zrow"><span class="zk">Bike (FTP '+ftp+')</span><span class="zv">Z2 '+z2+' · SS '+sst+' · thr '+th+' W</span></div>';}
 function distOf(x){if(x.d==='swim'){const km=x.t.match(/([\d.]+)\s*km/);if(km)return parseFloat(km[1]);const m=x.t.match(/(\d+)\s*m\b/);if(m)return (+m[1])/1000;return estMin(x)/60*2.4;}const mn=estMin(x);if(x.d==='bike')return mn/60*26;if(x.d==='run')return mn/6.2;return 0;}
-function banked(){const a={swim:0,bike:0,run:0};WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{if(progress[sid(wi,di,si)]&&a[x.d]!==undefined)a[x.d]+=distOf(x);})));return a;}
+function banked(){const a={swim:0,bike:0,run:0};WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(wi,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actKm(id,x);})));return a;}
 function weeksDone(){let n=0;WEEKS.forEach((w,wi)=>{const st=weekStats(wi);if(st.tot>0&&st.done===st.tot)n++;});return n;}
 function streak(){const list=[];WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{if(x.d!=='rest'&&!x.o)list.push({iso:day.iso,id:sid(wi,di,si)});})));list.sort((a,b)=>a.iso<b.iso?-1:1);const t=todayISO();const past=list.filter(e=>e.iso<=t);let n=0;for(let i=past.length-1;i>=0;i--){if(progress[past[i].id])n++;else break;}return n;}
 function showToast(msg){const el=$('toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
 function renderZones(){const z=$('zonespc');if(z)z.innerHTML=zoneRows();}
-function renderStats(){const t=totalStats(),b=banked(),tot=Math.round(b.swim+b.bike+b.run);const sl=$('statline');if(sl)sl.textContent=streak()+'-session streak · '+weeksDone()+'/'+WEEKS.length+' weeks done · '+tot+' km banked';const pp=$('progpc');if(pp)pp.innerHTML='<div class="zrow"><span class="zk">Sessions done</span><span class="zv">'+t.done+' / '+t.tot+'</span></div><div class="zrow"><span class="zk">Weeks completed</span><span class="zv">'+weeksDone()+' / '+WEEKS.length+'</span></div><div class="zrow"><span class="zk">Current streak</span><span class="zv">'+streak()+' sessions</span></div><div class="zrow"><span class="zk">Distance banked</span><span class="zv">swim '+Math.round(b.swim)+' · bike '+Math.round(b.bike)+' · run '+Math.round(b.run)+' km</span></div>';}
+function renderDist(){const el=$('distpc');if(!el)return;
+  const wk=distByDisc(cur),tot=distByDisc(null),wkT=timeByDisc(cur),totT=timeByDisc(null);
+  const km=(v)=>v.toFixed(1)+' km';
+  const row=(k,label,dist)=>'<div class="zrow"><span class="zk">'+label+'</span><span class="zv">'+
+    (dist?km(wk[k])+' wk · '+km(tot[k])+' total':fmtT(wkT[k])+' wk · '+fmtT(totT[k])+' total')+'</span></div>';
+  const totMin=(o)=>o.swim+o.bike+o.run+o.strength;
+  el.innerHTML='<div class="zrow" style="color:var(--faint);font-weight:600"><span class="zk" style="font-weight:600;color:var(--faint)">This week · plan total</span><span class="zv" style="color:var(--faint)">'+WEEKS[cur].name+'</span></div>'+
+    row('swim','Swim',true)+row('bike','Bike',true)+row('run','Run',true)+row('strength','Strength',false)+
+    '<div class="zrow"><span class="zk">Total time</span><span class="zv">'+fmtT(totMin(wkT))+' wk · '+fmtT(totMin(totT))+' total</span></div>';}
+function renderStats(){const t=totalStats(),b=banked(),tot=Math.round(b.swim+b.bike+b.run);renderDist();const sl=$('statline');if(sl)sl.textContent=streak()+'-session streak · '+weeksDone()+'/'+WEEKS.length+' weeks done · '+tot+' km banked';const pp=$('progpc');if(pp)pp.innerHTML='<div class="zrow"><span class="zk">Sessions done</span><span class="zv">'+t.done+' / '+t.tot+'</span></div><div class="zrow"><span class="zk">Weeks completed</span><span class="zv">'+weeksDone()+' / '+WEEKS.length+'</span></div><div class="zrow"><span class="zk">Current streak</span><span class="zv">'+streak()+' sessions</span></div><div class="zrow"><span class="zk">Distance banked</span><span class="zv">swim '+Math.round(b.swim)+' · bike '+Math.round(b.bike)+' · run '+Math.round(b.run)+' km</span></div>';}
 function sid(wi,di,si){return WEEKS[wi].id+'-'+di+'-'+si;}
 function isReq(x){return x.d!=='rest'&&!x.o;}
 function weekStats(wi){let done=0,tot=0;WEEKS[wi].days.forEach((day,di)=>day.s.forEach((x,si)=>{if(isReq(x)){tot++;if(progress[sid(wi,di,si)])done++;}}));return {done,tot};}
@@ -286,13 +322,16 @@ function cardHTML(s){
   var felt=lg.felt?lg.felt+' / 10':'not rated yet';
   var log='<div class="log"><div class="feltrow"><span class="logk">How it felt</span><span class="feltval">'+felt+'</span></div><input type="range" min="1" max="10" step="1" value="'+(lg.felt||5)+'" class="feltrange" data-id="'+id+'"><input type="text" class="lognote" data-id="'+id+'" placeholder="What you actually did — time, distance, notes" value="'+esc(lg.note||'')+'"></div>';
   var editRow='<div class="editrow"><button class="editbtn" data-id="'+id+'">✎ edit</button>'+(s.added?'<button class="delbtn" data-id="'+id+'">🗑 delete</button>':'')+'</div>';
+  var A=actuals[id],actNote='';
+  if(A){var ap=[];if(A.dist!=null&&s.d!=='strength'&&A.dist>0)ap.push((A.dist/1000).toFixed(1)+' km');if(A.sec!=null&&A.sec>0)ap.push(Math.round(A.sec/60)+' min');
+    actNote='<div class="actnote">✔ Actual (intervals.icu): '+(ap.length?ap.join(' · '):'logged')+(A.name?' — '+esc(A.name):'')+'</div>';}
   var full=s.x?scaleSpec(s):'';var fuelNote='';var breakdown=full;
   if(full.indexOf('🍌')===0){var fi=full.indexOf(' · ');if(fi>0){fuelNote=full.slice(0,fi);breakdown=full.slice(fi+3);}}
   var structPart=breakdown,dp=breakdown.indexOf('. ');if(dp>0){structPart=breakdown.slice(0,dp);}else if(breakdown.slice(-1)==='.'){structPart=breakdown.slice(0,-1);}var specMain=structPart?'<div class="spec-main">'+structPart+'</div>':'';
   var tips='<details class="sub"><summary>Tips &amp; how it should feel</summary><div class="subin"><div class="coach">'+coach(s)+'</div>'+(fuelNote?'<div class="fuel">'+fuelNote+'</div>':'')+'</div></details>';
   var logsub='<details class="sub"><summary>Log it</summary><div class="subin">'+log+'</div></details>';
   var editsub='<details class="sub"><summary>Edit / adjust</summary><div class="subin">'+editRow+'</div></details>';
-  var detail='<div class="detail">'+editNote+specMain+tips+logsub+editsub+'</div>';
+  var detail='<div class="detail">'+actNote+editNote+specMain+tips+logsub+editsub+'</div>';
   return '<div class="sess'+(done?' done':'')+(s.added?' added':'')+'" data-id="'+id+'" data-disc="'+s.d+'"><span class="accent" style="background:'+m.color+'"></span><div class="body"><div class="top"><span class="tag" style="color:'+m.color+';background:'+m.color+'1f">'+m.label+'</span><span class="ttl">'+title+'</span>'+tagAdded+tagEdited+(s.o?'<span class="opt">optional</span>':'')+'<span class="grip" title="Hold and drag to another day">⠿</span><span class="chev">⌄</span></div>'+detail+'</div><button class="check"'+(done?' style="background:'+m.color+';border-color:'+m.color+';color:#fff"':'')+'>✓</button></div>';
 }
 function renderWeek(){
@@ -371,7 +410,7 @@ function attachDrag(grip,main){
 function toggleDone(el){const id=el.dataset.id;const on=!progress[id];if(on)progress[id]=true;else delete progress[id];const m=DISC[el.dataset.disc];el.classList.toggle('done',on);const c=el.querySelector('.check');c.style.cssText=on?'background:'+m.color+';border-color:'+m.color+';color:#fff':'';save();updateChrome();if(on){const st=weekStats(cur);if(st.tot>0&&st.done===st.tot)showToast('Week complete — nice work!');}}
 function coach(x){var t=x.t.toLowerCase(),d=x.d;if(d==='rest')return 'Rest is training too — this is when your body absorbs the work and gets stronger. Take it fully.';if(/race|70\.3/.test(t))return 'Race day. Trust your training. Breathe out in the water, settle into the bike, run your own race — and enjoy it.';if(/ftp test|threshold test|time trial/.test(t))return 'A benchmark, not a normal session. Warm up well, then hold the hardest STEADY, even effort you can for the whole thing — do not sprint the start or you will fade. Note your result and update your numbers after; this is what keeps your paces and watts honest. Do it on fresh legs.';var c='';if(d==='swim'){if(/endurance/.test(t))c='Long swim. Hold the same pace across every rep (or finish faster), and keep your form together — quality beats just surviving the metres — no stopping at the walls. Settle into a rhythm you could hold all day, breathe steadily, and practise sighting. This is what race day actually feels like.';else if(/speed|threshold|tempo/.test(t))c='Speed day — hold a faster pace than you could swim continuously, and keep your form together as it gets hard. Short rests are there so the quality stays high.';else if(/tempo|build/.test(t))c='Working swim — hold your form as the pace lifts. Smooth catch, steady rhythm, do not thrash.';else c='Easy and technical. Long relaxed stroke, exhale into the water, no rushing. Skill-building.';}else if(d==='bike'){if(/endurance/.test(t))c='Zone 2 — conversational. This ride builds the engine that carries your whole race. Steady 85–95 rpm, and practise eating and drinking.';else if(/opener/.test(t))c='Light and short — just waking the legs up. Do not turn it into a session.';else if(/easy/.test(t))c='Easy and light. Nothing hard here; keep it comfortable.';else if(/vo2/.test(t))c='Very hard, short reps — top-end fitness. Full recoveries between; it should feel near-maximal.';else if(/threshold/.test(t))c='Hard but holdable, right at your limit through each rep, easing right off in recoveries. In ERG the bike holds the watts — keep 85–95 rpm.';else if(/tempo/.test(t))c='Comfortably hard and controlled — working but sustainable. Steady cadence, relaxed breathing.';else c='Progressive — start easy and build the effort through each block. Smooth transitions.';}else if(d==='run'){if(/hill/.test(t))c='Hill reps — strong, controlled efforts up a moderate climb (not sprints), with an easy jog down to recover fully. Drive the arms, short quick steps. Builds leg strength and running economy, and is gentler on the body than flat speedwork.';else if(/endurance/.test(t))c='Easy, conversational — time on your feet matters more than speed. If in doubt, slow down.';else if(/race pace/.test(t))c='Lock into your goal 70.3 feel — controlled, not hard. This is pacing practice, so resist speeding up.';else if(/threshold/.test(t))c='Comfortably-hard reps right at your limit; ease off fully in the recoveries. Stay relaxed and tall.';else if(/tempo/.test(t))c='Controlled and rhythmic in the tempo blocks — a few words but not a chat. Hold it steady.';else if(/build/.test(t))c='Start easy and lift gradually to tempo by the end. Smooth, no surges.';else c='Genuinely easy — conversational and relaxed. Easy days are what let your hard days be hard.';}else if(d==='strength'){if(/pilates/.test(t))c='Your hot Pilates class — mobility, core and control in the heat. Rehydrate well afterwards, and keep the swim that follows easy since your core will be tired.';else if(/durability/.test(t))c='Single-leg work, mobility, core and prehab. This keeps you injury-free — move well, do not chase fatigue.';else c='Full-body strength. Controlled reps, form over load. Leave a couple of reps in the tank.';}return c;}
 function updateChrome(){const t=totalStats(),pct=t.tot?Math.round(t.done/t.tot*100):0;$('ovFill').style.width=pct+'%';$('ovText').innerHTML='<b>'+t.done+'</b> of '+t.tot+' sessions';$('ovPct').textContent=pct+'%';renderPills();renderHead();renderStats();}
-function loadChips(a,dec){const order=[['swim','Swim'],['bike','Bike'],['run','Run'],['strength','Strength']];return order.map(p=>'<span class="lchip"><span class="ld" style="background:'+DISC[p[0]].color+'"></span><span class="ll">'+p[1]+'</span> <span class="lh">'+(dec?(a[p[0]]/60).toFixed(1):Math.round(a[p[0]]/60))+'h</span></span>').join('');}
+function loadChips(a,dec){const order=[['swim','Swim'],['bike','Bike'],['run','Run'],['strength','Strength']];return order.map(p=>'<span class="lchip disc-'+p[0]+'"><span class="ld" style="background:'+DISC[p[0]].color+'"></span><span class="ll">'+p[1]+'</span> <span class="lh">'+(dec?(a[p[0]]/60).toFixed(1):Math.round(a[p[0]]/60))+'h</span></span>').join('');}
 function weekLoad(wi){const a={swim:0,bike:0,run:0,strength:0};WEEKS[wi].days.forEach(d=>d.s.forEach(x=>{if(x.d==='rest'||x.o)return;if(a[x.d]!==undefined)a[x.d]+=estMin(x);}));return a;}
 function renderLoad(){$('loadbar').innerHTML=loadChips(computeLoad(),false);}
 function renderAll(){renderPills();renderHead();renderWeek();updateChrome();}
@@ -385,7 +424,7 @@ window.__rehydrate=function(){hydrate(false);};
 (async function(){await hydrate(true);
   const sf=$('setFtp'),sr=$('setRun'),ss=$('setSwim');
   const sb=$('saveSet');if(sb)sb.onclick=()=>{const f=parseInt(sf.value,10);if(f>50&&f<600)settings.ftp=f;if(/^\d{1,2}:\d{2}$/.test((sr.value||'').trim()))settings.run=sr.value.trim();if(/^\d{1,2}:\d{2}$/.test((ss.value||'').trim()))settings.swim=ss.value.trim();saveSettings();renderZones();renderAll();showToast('Targets updated');};
-  $('reset').onclick=()=>{if(confirm('Clear all your ticked-off sessions? This cannot be undone.')){progress={};ivdone={};save();saveIvdone();renderAll();}};var rm=$('resetMoves');if(rm)rm.onclick=()=>{if(confirm('Put every session back on its original day?')){moves={};saveMoves();renderAll();}};
+  $('reset').onclick=()=>{if(confirm('Clear all your ticked-off sessions? This cannot be undone.')){progress={};ivdone={};actuals={};save();saveIvdone();saveActuals();renderAll();}};var rm=$('resetMoves');if(rm)rm.onclick=()=>{if(confirm('Put every session back on its original day?')){moves={};saveMoves();renderAll();}};
 })();
 </script>
 

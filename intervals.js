@@ -61,7 +61,15 @@
       var data = res.data || {};
       if (data.error) { setStatus("intervals.icu: " + data.error); return; }
       var acts = (data.activities || [])
-        .map(function (a) { return { date: a.date, disc: mapType(a.type) }; })
+        .map(function (a) {
+          return {
+            date: a.date,
+            disc: mapType(a.type),
+            dist: (a.distance != null ? a.distance : null),   // metres
+            sec: (a.moving_time != null ? a.moving_time : null), // seconds
+            name: a.name || ""
+          };
+        })
         .filter(function (a) { return a.disc && a.date; });
 
       var ticked = window.__applyIntervalsActivities(acts) || 0;
