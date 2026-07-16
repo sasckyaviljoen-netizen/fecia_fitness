@@ -294,9 +294,11 @@ window.__applyIntervalsActivities=function(acts){
   // Build every (activity, same-sport session in same week) pair, then assign the
   // closest pairs first — so an exact-day match always wins over a nearby one and
   // no earlier activity can steal a session that another activity matches exactly.
+  // Auto-match only on the exact same day (using a session's moved day if dragged).
+  // Did it another day? Drag the session to that day and it'll match, or link it manually.
   const pairs=[];
-  clean.forEach((a,ai)=>{const wi=weekIndexOf(a.date);if(wi<0)return;(slots[wi]||[]).forEach(s=>{if(s.disc===a.disc)pairs.push({ai,s,diff:Math.abs(dayDiff(s.iso,a.date))});});});
-  pairs.sort((p,q)=>p.diff-q.diff||(p.s.iso<q.s.iso?-1:p.s.iso>q.s.iso?1:0));
+  clean.forEach((a,ai)=>{const wi=weekIndexOf(a.date);if(wi<0)return;(slots[wi]||[]).forEach(s=>{if(s.disc!==a.disc)return;if(dayDiff(s.iso,a.date)===0)pairs.push({ai,s,diff:0});});});
+  pairs.sort((p,q)=>(p.s.iso<q.s.iso?-1:p.s.iso>q.s.iso?1:0));
   const usedAct={},usedSlot={};let n=0,changed=false;
   pairs.forEach(p=>{
     if(usedAct[p.ai]||usedSlot[p.s.id])return;
