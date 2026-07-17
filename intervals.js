@@ -71,21 +71,25 @@
       }
       var data = res.data || {};
       if (data.error) { setStatus("intervals.icu: " + data.error); return; }
-      var acts = (data.activities || [])
+      var mapped = (data.activities || [])
         .map(function (a) {
           return {
             date: a.date,
-            disc: mapType(a.type),
-            dist: (a.distance != null ? a.distance : null),   // metres
+            disc: mapType(a.type),                              // null => "Other"
+            type: a.type || "",
+            dist: (a.distance != null ? a.distance : null),     // metres
             sec: (a.moving_time != null ? a.moving_time : null), // seconds
             name: a.name || ""
           };
         })
-        .filter(function (a) { return a.disc && a.date; });
+        .filter(function (a) { return a.date; });
+      var matchable = mapped.filter(function (a) { return a.disc; });
+      var others = mapped.filter(function (a) { return !a.disc; });
 
-      var ticked = window.__applyIntervalsActivities(acts) || 0;
+      var ticked = window.__applyIntervalsActivities(matchable) || 0;
+      if (typeof window.__applyIntervalsOthers === "function") window.__applyIntervalsOthers(others);
       try { localStorage.setItem(LAST_KEY, new Date().toISOString()); } catch (e) {}
-      renderIvStatus(acts.length, ticked, manual);
+      renderIvStatus(mapped.length, ticked, manual);
     } catch (e) {
       console.warn("intervals sync failed", e);
       setStatus("intervals.icu check failed — see console.");

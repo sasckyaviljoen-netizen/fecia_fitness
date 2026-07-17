@@ -70,6 +70,11 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 .ivlinkopt:hover{border-color:var(--good)}
 .ivlinkopt small{color:var(--muted);font-weight:600;font-size:11.5px}
 .ivlinkmsg{font-size:12px;color:var(--muted);margin-top:8px;font-weight:600;line-height:1.5}
+.sess.other{background:var(--surface2);border-style:dashed}
+.sess.other .ttl{color:var(--text)}
+.othersub{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:6px}
+.otherdel{margin-top:10px;background:none;border:1px solid var(--line);color:var(--faint);font-family:inherit;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:9px;cursor:pointer}
+.otherdel:hover{color:#c77;border-color:#e6c9c9}
 .sess .ttl{font-weight:600;font-size:14.5px;color:var(--text)}
 .sess .opt{font-size:9.5px;color:var(--faint);border:1px solid var(--line);padding:1px 6px;border-radius:99px;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
 .sess .chev{margin-left:8px;color:var(--faint);font-size:15px;transition:transform .25s;line-height:1}
@@ -178,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v15</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v16</span></footer>
   </div>
 </div>
 
@@ -229,12 +234,13 @@ function buildWeek(w){
 }
 const WEEKS=PLAN.map(buildWeek);
 
-const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1',AKEY='tri-actuals-v1';
-let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},actuals={},cur=0;
+const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1',AKEY='tri-actuals-v1',OKEY='tri-others-v1';
+let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},actuals={},others={},cur=0;
+const OTHER_COLOR='#9c868f';
 const $=id=>document.getElementById(id);
 async function getK(k){try{if(window.storage){const r=await window.storage.get(k);return r&&r.value?JSON.parse(r.value):null;}else{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}}catch(e){return null;}}
 function setK(k,o){try{if(window.storage)window.storage.set(k,JSON.stringify(o));else localStorage.setItem(k,JSON.stringify(o));}catch(e){}}
-async function load(){try{const p=await getK(KEY);if(p)progress=p;const s=await getK(SKEY);if(s)Object.assign(settings,s);const l=await getK(LKEY);if(l)logs=l;const mv=await getK(MKEY);if(mv)moves=mv;const ex=await getK(XKEY);if(ex)extra=ex;const ed=await getK(EKEY);if(ed)edits=ed;const iv=await getK(IVKEY);if(iv)ivdone=iv;const ac=await getK(AKEY);if(ac)actuals=ac;}catch(e){}}
+async function load(){try{const p=await getK(KEY);if(p)progress=p;const s=await getK(SKEY);if(s)Object.assign(settings,s);const l=await getK(LKEY);if(l)logs=l;const mv=await getK(MKEY);if(mv)moves=mv;const ex=await getK(XKEY);if(ex)extra=ex;const ed=await getK(EKEY);if(ed)edits=ed;const iv=await getK(IVKEY);if(iv)ivdone=iv;const ac=await getK(AKEY);if(ac)actuals=ac;const ot=await getK(OKEY);if(ot)others=ot;}catch(e){}}
 function save(){setK(KEY,progress);}
 function saveSettings(){setK(SKEY,settings);}
 function saveLogs(){setK(LKEY,logs);}
@@ -243,6 +249,22 @@ function saveExtra(){setK(XKEY,extra);}
 function saveEdits(){setK(EKEY,edits);}
 function saveIvdone(){setK(IVKEY,ivdone);}
 function saveActuals(){setK(AKEY,actuals);}
+function saveOthers(){setK(OKEY,others);}
+// Import unplanned intervals.icu activities (walks, pickleball, hikes…) as "Other".
+// Deduped by a composite key; a removed one is kept hidden so it won't re-import.
+window.__applyIntervalsOthers=function(list){
+  if(!Array.isArray(list))return 0;
+  let changed=false,n=0;
+  list.forEach(function(a){
+    if(!a.date)return;
+    var key=a.date+'|'+(a.type||'')+'|'+(a.name||'')+'|'+(a.sec||0)+'|'+(a.dist||0);
+    if(!others[key]){others[key]={date:a.date,type:a.type||'',name:a.name||'',dist:(a.dist!=null?a.dist:null),sec:(a.sec!=null?a.sec:null),hidden:false};changed=true;n++;}
+  });
+  if(changed){saveOthers();renderAll();}
+  return n;
+};
+function otherTotals(wi){var d=0,s=0;Object.keys(others).forEach(function(k){var o=others[k];if(o.hidden)return;if(wi!=null&&weekIndexOf(o.date)!==wi)return;if(o.dist)d+=o.dist/1000;if(o.sec)s+=o.sec;});return {km:d,min:s/60};}
+function ivOtherRemove(key){if(others[key]){others[key].hidden=true;saveOthers();renderAll();showToast('Removed');}}
 // Actual distance (km) / time (min) for a session: intervals.icu value if we have
 // it, otherwise the plan estimate. Keeps totals honest as real workouts log.
 function actKm(id,x){const a=actuals[id];if(a&&a.dist!=null)return a.dist/1000;return distOf(x);}
@@ -334,7 +356,9 @@ function renderDist(){const el=$('distpc');if(!el)return;
   const totMin=(o)=>o.swim+o.bike+o.run+o.strength;
   el.innerHTML='<div class="zrow" style="color:var(--faint);font-weight:600"><span class="zk" style="font-weight:600;color:var(--faint)">This week · plan total</span><span class="zv" style="color:var(--faint)">'+WEEKS[cur].name+'</span></div>'+
     row('swim','Swim',true)+row('bike','Bike',true)+row('run','Run',true)+row('strength','Strength + Pilates',false)+
-    '<div class="zrow"><span class="zk">Total time</span><span class="zv">'+fmtT(totMin(wkT))+' wk · '+fmtT(totMin(totT))+' total</span></div>';}
+    otherRow()+
+    '<div class="zrow"><span class="zk">Total time</span><span class="zv">'+fmtT(totMin(wkT)+otherTotals(cur).min)+' wk · '+fmtT(totMin(totT)+otherTotals(null).min)+' total</span></div>';
+  function otherRow(){var ow=otherTotals(cur),ot2=otherTotals(null);if(ot2.min<=0&&ot2.km<=0)return '';var wkv=(ow.km>0?ow.km.toFixed(1)+' km · ':'')+fmtT(ow.min);var tov=(ot2.km>0?ot2.km.toFixed(1)+' km · ':'')+fmtT(ot2.min);return '<div class="zrow"><span class="zk">Other</span><span class="zv">'+wkv+' wk · '+tov+' total</span></div>';}}
 function renderStats(){const t=totalStats(),b=banked(),tot=Math.round(b.swim+b.bike+b.run);renderDist();const sl=$('statline');if(sl)sl.textContent=streak()+'-session streak · '+weeksDone()+'/'+WEEKS.length+' weeks done · '+tot+' km banked';const pp=$('progpc');if(pp)pp.innerHTML='<div class="zrow"><span class="zk">Sessions done</span><span class="zv">'+t.done+' / '+t.tot+'</span></div><div class="zrow"><span class="zk">Weeks completed</span><span class="zv">'+weeksDone()+' / '+WEEKS.length+'</span></div><div class="zrow"><span class="zk">Current streak</span><span class="zv">'+streak()+' sessions</span></div><div class="zrow"><span class="zk">Distance banked</span><span class="zv">swim '+Math.round(b.swim)+' · bike '+Math.round(b.bike)+' · run '+Math.round(b.run)+' km</span></div>';}
 function sid(wi,di,si){return WEEKS[wi].id+'-'+di+'-'+si;}
 function isReq(x){return x.d!=='rest'&&!x.o;}
@@ -370,15 +394,22 @@ function cardHTML(s,iso){
   var detail='<div class="detail">'+actNote+editNote+specMain+tips+logsub+linksub+editsub+'</div>';
   return '<div class="sess'+(done?' done':'')+(s.added?' added':'')+'" data-id="'+id+'" data-disc="'+s.d+'"><span class="accent" style="background:'+m.color+'"></span><div class="body"><div class="top"><span class="tag" style="color:'+m.color+';background:'+m.color+'1f">'+m.label+'</span><span class="ttl">'+title+'</span>'+tagAdded+tagEdited+(s.o?'<span class="opt">optional</span>':'')+'<span class="grip" title="Hold and drag to another day">⠿</span><span class="chev">⌄</span></div>'+detail+'</div><button class="check"'+(done?' style="background:'+m.color+';border-color:'+m.color+';color:#fff"':'')+'>✓</button></div>';
 }
+function otherCardHTML(key,o){
+  var parts=[];if(o.dist!=null&&o.dist>0)parts.push((o.dist/1000).toFixed(1)+' km');if(o.sec!=null&&o.sec>0)parts.push(Math.round(o.sec/60)+' min');
+  var sub=(o.type||'Activity')+(parts.length?' · '+parts.join(' · '):'');
+  return '<div class="sess other" data-otherkey="'+esc(key)+'"><span class="accent" style="background:'+OTHER_COLOR+'"></span><div class="body"><div class="top"><span class="tag" style="color:'+OTHER_COLOR+';background:'+OTHER_COLOR+'1f">Other</span><span class="ttl">'+esc(o.name||o.type||'Activity')+'</span><span class="opt">from intervals</span></div><div class="othersub">'+esc(sub)+'</div><button class="otherdel" data-otherkey="'+esc(key)+'">✕ remove</button></div></div>';
+}
 function renderWeek(){
   var w=WEEKS[cur],t=todayISO(),main=$('weekView');main.innerHTML='';
   var buckets=[[],[],[],[],[],[],[]];
   w.days.forEach(function(day,di){day.s.forEach(function(s){var dd=(moves[s._id]!==undefined?moves[s._id]:di);buckets[dd].push(s);});});
   (extra[w.id]||[]).forEach(function(s){buckets[(s.day!==undefined?s.day:0)].push(s);});
+  // Inject imported "Other" activities onto the day they happened.
+  Object.keys(others).forEach(function(key){var o=others[key];if(o.hidden)return;for(var di=0;di<w.days.length;di++){if(w.days[di].iso===o.date){buckets[di].push({__other:true,key:key,o:o});break;}}});
   w.days.forEach(function(day,di){
     var dEl=document.createElement('div');dEl.className='day'+(day.iso===t?' today':'');dEl.dataset.day=di;
     var html='<div class="day-label">'+day.label+(day.iso===t?'<span class="badge-today">Today</span>':'')+'</div>';
-    buckets[di].forEach(function(s){html+=cardHTML(s,day.iso);});
+    buckets[di].forEach(function(s){html+=(s&&s.__other)?otherCardHTML(s.key,s.o):cardHTML(s,day.iso);});
     if(!buckets[di].length)html+='<div class="empty-day">— rest / free —</div>';
     html+='<button class="addbtn" data-day="'+di+'">+ add a session</button>';
     dEl.innerHTML=html;main.appendChild(dEl);
@@ -392,6 +423,7 @@ function bindWeek(main){
   main.querySelectorAll('.lognote').forEach(function(n){n.addEventListener('input',function(){var id=n.dataset.id;logs[id]=logs[id]||{};logs[id].note=n.value;saveLogs();});});
   main.querySelectorAll('.ivlinkbtn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();ivLinkFind(b);});});
   main.querySelectorAll('.ivunlinkbtn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();ivLinkClear(b.dataset.id);});});
+  main.querySelectorAll('.otherdel').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();if(confirm('Remove this imported activity?'))ivOtherRemove(b.dataset.otherkey);});});
   main.querySelectorAll('.grip').forEach(function(g){attachDrag(g,main);});
   main.querySelectorAll('.addbtn').forEach(function(b){b.addEventListener('click',function(){addSession(+b.dataset.day);});});
   main.querySelectorAll('.editbtn').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();editSession(b.dataset.id);});});
@@ -462,7 +494,7 @@ window.__rehydrate=function(){hydrate(false);};
 (async function(){await hydrate(true);
   const sf=$('setFtp'),sr=$('setRun'),ss=$('setSwim');
   const sb=$('saveSet');if(sb)sb.onclick=()=>{const f=parseInt(sf.value,10);if(f>50&&f<600)settings.ftp=f;if(/^\d{1,2}:\d{2}$/.test((sr.value||'').trim()))settings.run=sr.value.trim();if(/^\d{1,2}:\d{2}$/.test((ss.value||'').trim()))settings.swim=ss.value.trim();saveSettings();renderZones();renderAll();showToast('Targets updated');};
-  $('reset').onclick=()=>{if(confirm('Clear all your ticked-off sessions? This cannot be undone.')){progress={};ivdone={};actuals={};save();saveIvdone();saveActuals();renderAll();}};var rm=$('resetMoves');if(rm)rm.onclick=()=>{if(confirm('Put every session back on its original day?')){moves={};saveMoves();renderAll();}};
+  $('reset').onclick=()=>{if(confirm('Clear all your ticked-off sessions? This cannot be undone.')){progress={};ivdone={};actuals={};others={};save();saveIvdone();saveActuals();saveOthers();renderAll();}};var rm=$('resetMoves');if(rm)rm.onclick=()=>{if(confirm('Put every session back on its original day?')){moves={};saveMoves();renderAll();}};
 })();
 </script>
 
