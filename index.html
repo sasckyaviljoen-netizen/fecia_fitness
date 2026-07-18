@@ -183,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v16</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v17</span></footer>
   </div>
 </div>
 
@@ -331,7 +331,15 @@ window.__applyIntervalsActivities=function(acts){
     if(!o||o.dist!==na.dist||o.sec!==na.sec||o.name!==na.name){actuals[p.s.id]=na;changed=true;}
     if(!progress[p.s.id]&&!ivdone[p.s.id]){progress[p.s.id]=true;ivdone[p.s.id]=true;n++;changed=true;}
   });
-  if(changed){save();saveIvdone();saveActuals();renderAll();}
+  // A workout that couldn't tick a planned session (e.g. a 2nd ride from a paused
+  // watch) becomes an extra "Other". When one later matches a session, drop its
+  // duplicate Other so it isn't double-counted.
+  const okey=(a)=>a.date+'|'+(a.type||'')+'|'+(a.name||'')+'|'+(a.sec||0)+'|'+(a.dist||0);
+  clean.forEach((a,ai)=>{const k=okey(a);
+    if(usedAct[ai]){ if(others[k]&&!others[k].hidden){delete others[k];changed=true;} }
+    else if(!others[k]){others[k]={date:a.date,type:a.type||'',name:a.name||'',dist:(a.dist!=null?a.dist:null),sec:(a.sec!=null?a.sec:null),hidden:false};changed=true;}
+  });
+  if(changed){save();saveIvdone();saveActuals();saveOthers();renderAll();}
   if(n)showToast(n+' session'+(n>1?'s':'')+' detected from intervals.icu');
   return n;
 };
