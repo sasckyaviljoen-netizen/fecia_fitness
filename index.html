@@ -183,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v17</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v18</span></footer>
   </div>
 </div>
 
@@ -258,20 +258,23 @@ window.__applyIntervalsOthers=function(list){
   list.forEach(function(a){
     if(!a.date)return;
     var key=a.date+'|'+(a.type||'')+'|'+(a.name||'')+'|'+(a.sec||0)+'|'+(a.dist||0);
-    if(!others[key]){others[key]={date:a.date,type:a.type||'',name:a.name||'',dist:(a.dist!=null?a.dist:null),sec:(a.sec!=null?a.sec:null),hidden:false};changed=true;n++;}
+    if(!others[key]){others[key]={date:a.date,disc:'other',type:a.type||'',name:a.name||'',dist:(a.dist!=null?a.dist:null),sec:(a.sec!=null?a.sec:null),hidden:false};changed=true;n++;}
   });
   if(changed){saveOthers();renderAll();}
   return n;
 };
-function otherTotals(wi){var d=0,s=0;Object.keys(others).forEach(function(k){var o=others[k];if(o.hidden)return;if(wi!=null&&weekIndexOf(o.date)!==wi)return;if(o.dist)d+=o.dist/1000;if(o.sec)s+=o.sec;});return {km:d,min:s/60};}
+// "Other" totals count only true non-sport extras; sport extras roll into their discipline.
+function otherTotals(wi){var d=0,s=0;Object.keys(others).forEach(function(k){var o=others[k];if(o.hidden)return;if((o.disc||'other')!=='other')return;if(wi!=null&&weekIndexOf(o.date)!==wi)return;if(o.dist)d+=o.dist/1000;if(o.sec)s+=o.sec;});return {km:d,min:s/60};}
+// Extra imported workouts (2nd ride from a paused watch, bonus sessions) added to their discipline.
+function extrasByDisc(wi,useTime){const a={swim:0,bike:0,run:0,strength:0};Object.keys(others).forEach(function(k){var o=others[k];if(o.hidden)return;var dc=o.disc;if(!dc||a[dc]===undefined)return;if(wi!=null&&weekIndexOf(o.date)!==wi)return;a[dc]+=useTime?((o.sec||0)/60):((o.dist||0)/1000);});return a;}
 function ivOtherRemove(key){if(others[key]){others[key].hidden=true;saveOthers();renderAll();showToast('Removed');}}
 // Actual distance (km) / time (min) for a session: intervals.icu value if we have
 // it, otherwise the plan estimate. Keeps totals honest as real workouts log.
 function actKm(id,x){const a=actuals[id];if(a&&a.dist!=null)return a.dist/1000;return distOf(x);}
 function actMin(id,x){const a=actuals[id];if(a&&a.sec!=null)return a.sec/60;return estMin(x);}
 // Actual-aware done distance/time per discipline. wi=null => whole plan.
-function distByDisc(wi){const a={swim:0,bike:0,run:0,strength:0};const ws=(wi==null)?WEEKS.map((w,i)=>i):[wi];ws.forEach(w=>WEEKS[w].days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(w,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actKm(id,x);})));return a;}
-function timeByDisc(wi){const a={swim:0,bike:0,run:0,strength:0};const ws=(wi==null)?WEEKS.map((w,i)=>i):[wi];ws.forEach(w=>WEEKS[w].days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(w,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actMin(id,x);})));return a;}
+function distByDisc(wi){const a={swim:0,bike:0,run:0,strength:0};const ws=(wi==null)?WEEKS.map((w,i)=>i):[wi];ws.forEach(w=>WEEKS[w].days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(w,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actKm(id,x);})));const ex=extrasByDisc(wi,false);['swim','bike','run','strength'].forEach(function(d){a[d]+=ex[d];});return a;}
+function timeByDisc(wi){const a={swim:0,bike:0,run:0,strength:0};const ws=(wi==null)?WEEKS.map((w,i)=>i):[wi];ws.forEach(w=>WEEKS[w].days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(w,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actMin(id,x);})));const ex=extrasByDisc(wi,true);['swim','bike','run','strength'].forEach(function(d){a[d]+=ex[d];});return a;}
 function fmtT(min){min=Math.round(min);if(min<=0)return '0m';const h=Math.floor(min/60),m=min%60;return h?(h+'h'+(m?' '+m+'m':'')):(m+'m');}
 // Called by intervals.js with [{date:'YYYY-MM-DD', disc:'run'|'bike'|'swim'|'strength'}].
 // Ticks off any un-done, non-optional session on the same date + sport. Each
@@ -337,7 +340,8 @@ window.__applyIntervalsActivities=function(acts){
   const okey=(a)=>a.date+'|'+(a.type||'')+'|'+(a.name||'')+'|'+(a.sec||0)+'|'+(a.dist||0);
   clean.forEach((a,ai)=>{const k=okey(a);
     if(usedAct[ai]){ if(others[k]&&!others[k].hidden){delete others[k];changed=true;} }
-    else if(!others[k]){others[k]={date:a.date,type:a.type||'',name:a.name||'',dist:(a.dist!=null?a.dist:null),sec:(a.sec!=null?a.sec:null),hidden:false};changed=true;}
+    else if(!others[k]){others[k]={date:a.date,disc:a.disc,type:a.type||'',name:a.name||'',dist:(a.dist!=null?a.dist:null),sec:(a.sec!=null?a.sec:null),hidden:false};changed=true;}
+    else if(!others[k].hidden&&others[k].disc!==a.disc){others[k].disc=a.disc;changed=true;} // keep sport label on older imports
   });
   if(changed){save();saveIvdone();saveActuals();saveOthers();renderAll();}
   if(n)showToast(n+' session'+(n>1?'s':'')+' detected from intervals.icu');
@@ -351,7 +355,7 @@ function scaleSpec(x){let s=x.x||'';const R=ratios();s=sw(s,R.f);if(x.d==='run')
 function esc(s){return (''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function zoneRows(){const R=ratios(),ftp=settings.ftp||150;const run=sp('easy 6:00–6:20 · threshold 5:10–5:20 · race pace 5:45',R.r);const swim=sp('easy 2:30–2:45 · steady 2:15–2:25',R.s);const rd=n=>Math.round(n/5)*5;const z2=rd(.56*ftp)+'–'+rd(.75*ftp),sst=rd(.88*ftp)+'–'+rd(.94*ftp),th=rd(.91*ftp)+'–'+rd(1.05*ftp);return '<div class="zrow"><span class="zk">Run /km</span><span class="zv">'+run+'</span></div><div class="zrow"><span class="zk">Swim /100m</span><span class="zv">'+swim+'</span></div><div class="zrow"><span class="zk">Bike (FTP '+ftp+')</span><span class="zv">Z2 '+z2+' · SS '+sst+' · thr '+th+' W</span></div>';}
 function distOf(x){if(x.d==='swim'){const km=x.t.match(/([\d.]+)\s*km/);if(km)return parseFloat(km[1]);const m=x.t.match(/(\d+)\s*m\b/);if(m)return (+m[1])/1000;return estMin(x)/60*2.4;}const mn=estMin(x);if(x.d==='bike')return mn/60*26;if(x.d==='run')return mn/6.2;return 0;}
-function banked(){const a={swim:0,bike:0,run:0};WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{const id=sid(wi,di,si);if(progress[id]&&a[x.d]!==undefined)a[x.d]+=actKm(id,x);})));return a;}
+function banked(){const a=distByDisc(null);return {swim:a.swim||0,bike:a.bike||0,run:a.run||0};}
 function weeksDone(){let n=0;WEEKS.forEach((w,wi)=>{const st=weekStats(wi);if(st.tot>0&&st.done===st.tot)n++;});return n;}
 function streak(){const list=[];WEEKS.forEach((w,wi)=>w.days.forEach((day,di)=>day.s.forEach((x,si)=>{if(x.d!=='rest'&&!x.o)list.push({iso:day.iso,id:sid(wi,di,si)});})));list.sort((a,b)=>a.iso<b.iso?-1:1);const t=todayISO();const past=list.filter(e=>e.iso<=t);let n=0;for(let i=past.length-1;i>=0;i--){if(progress[past[i].id])n++;else break;}return n;}
 function showToast(msg){const el=$('toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2600);}
@@ -403,9 +407,11 @@ function cardHTML(s,iso){
   return '<div class="sess'+(done?' done':'')+(s.added?' added':'')+'" data-id="'+id+'" data-disc="'+s.d+'"><span class="accent" style="background:'+m.color+'"></span><div class="body"><div class="top"><span class="tag" style="color:'+m.color+';background:'+m.color+'1f">'+m.label+'</span><span class="ttl">'+title+'</span>'+tagAdded+tagEdited+(s.o?'<span class="opt">optional</span>':'')+'<span class="grip" title="Hold and drag to another day">⠿</span><span class="chev">⌄</span></div>'+detail+'</div><button class="check"'+(done?' style="background:'+m.color+';border-color:'+m.color+';color:#fff"':'')+'>✓</button></div>';
 }
 function otherCardHTML(key,o){
+  var disc=o.disc||'other';
+  var m=(disc==='other'||!DISC[disc])?{label:'Other',color:OTHER_COLOR}:DISC[disc];
   var parts=[];if(o.dist!=null&&o.dist>0)parts.push((o.dist/1000).toFixed(1)+' km');if(o.sec!=null&&o.sec>0)parts.push(Math.round(o.sec/60)+' min');
-  var sub=(o.type||'Activity')+(parts.length?' · '+parts.join(' · '):'');
-  return '<div class="sess other" data-otherkey="'+esc(key)+'"><span class="accent" style="background:'+OTHER_COLOR+'"></span><div class="body"><div class="top"><span class="tag" style="color:'+OTHER_COLOR+';background:'+OTHER_COLOR+'1f">Other</span><span class="ttl">'+esc(o.name||o.type||'Activity')+'</span><span class="opt">from intervals</span></div><div class="othersub">'+esc(sub)+'</div><button class="otherdel" data-otherkey="'+esc(key)+'">✕ remove</button></div></div>';
+  var sub=(o.type||m.label)+(parts.length?' · '+parts.join(' · '):'');
+  return '<div class="sess other" data-otherkey="'+esc(key)+'"><span class="accent" style="background:'+m.color+'"></span><div class="body"><div class="top"><span class="tag" style="color:'+m.color+';background:'+m.color+'1f">'+esc(m.label)+'</span><span class="ttl">'+esc(o.name||o.type||m.label)+'</span><span class="opt">extra · from intervals</span></div><div class="othersub">'+esc(sub)+'</div><button class="otherdel" data-otherkey="'+esc(key)+'">✕ remove</button></div></div>';
 }
 function renderWeek(){
   var w=WEEKS[cur],t=todayISO(),main=$('weekView');main.innerHTML='';
