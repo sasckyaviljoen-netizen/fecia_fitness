@@ -183,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v18</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v19</span></footer>
   </div>
 </div>
 
@@ -229,6 +229,11 @@ function genSessions(w){
 }
 function buildWeek(w){
   const arr=w.custom?w.custom:genSessions(w);
+  // Add a 3rd swim on Sunday to 2-swim weeks — but NOT the taper (kept light on purpose).
+  var swimCount=0;arr.forEach(function(ss){ss.forEach(function(s){if(s.d==='swim')swimCount++;});});
+  if(swimCount===2&&w.phase!=='Taper'&&arr[6]&&!arr[6].some(function(s){return s.d==='swim';})){
+    arr[6].push({d:'swim',t:'Easy Swim · 1.5 km',x:'Added Sunday swim — easy aerobic. WU 200 easy · Main 6×100 steady (r15) · CD 200 easy. Long relaxed stroke, exhale into the water, no rushing.',o:0,m:35});
+  }
   const days=arr.map((ss,i)=>{const iso=addDays(w.mon,i);ss.forEach((s,si)=>{s._id=w.id+'-'+i+'-'+si;});return {iso:iso,label:lbl(iso),s:ss};});
   return {id:w.id,name:w.name,range:shortd(w.mon)+' – '+shortd(addDays(w.mon,6)),note:w.note||'',days:days};
 }
