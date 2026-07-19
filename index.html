@@ -183,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v19</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v20</span></footer>
   </div>
 </div>
 
@@ -232,12 +232,39 @@ function buildWeek(w){
   // Add a 3rd swim on Sunday to 2-swim weeks — but NOT the taper (kept light on purpose).
   var swimCount=0;arr.forEach(function(ss){ss.forEach(function(s){if(s.d==='swim')swimCount++;});});
   if(swimCount===2&&w.phase!=='Taper'&&arr[6]&&!arr[6].some(function(s){return s.d==='swim';})){
-    arr[6].push({d:'swim',t:'Easy Swim · 1.5 km',x:'Added Sunday swim — easy aerobic. WU 200 easy · Main 6×100 steady (r15) · CD 200 easy. Long relaxed stroke, exhale into the water, no rushing.',o:0,m:35});
+    var SUN={
+      w1:{t:'Swim · 1.5 km — form & aerobic',x:'WU 300 easy (mix) · 6×50 drill/swim (r15) · 4×100 steady Z2 (r15) · 8×25 as odds easy / evens FAST (r20) · CD 200 easy. Long relaxed stroke, exhale into the water; keep the fast 25s smooth, not thrashy.'},
+      w2:{t:'Swim · 1.6 km — tempo build',x:'WU 300 · 4×75 build easy→strong (r15) · 3×200 as 150 steady + 50 strong (r25) · 6×25 sprint (r20) · CD 200. Negative-split each 200 and hold your form as the pace lifts.'},
+      w3:{t:'Swim · 1.5 km — speed',x:'WU 300 · 8×50 as 25 drill / 25 build (r15) · MAIN 10×50 at threshold — a fast pace you can repeat (r15) · 4×25 max sprint (r30) · CD 200 easy. The short rests are what keep the quality honest.'}
+    };
+    var sp=SUN[w.id]||{t:'Easy Swim · 1.5 km',x:'Easy aerobic. WU 200 · 6×100 steady (r15) · CD 200. Long relaxed stroke, no rushing.'};
+    arr[6].push({d:'swim',t:sp.t,x:sp.x,o:0,m:35});
   }
   const days=arr.map((ss,i)=>{const iso=addDays(w.mon,i);ss.forEach((s,si)=>{s._id=w.id+'-'+i+'-'+si;});return {iso:iso,label:lbl(iso),s:ss};});
   return {id:w.id,name:w.name,range:shortd(w.mon)+' – '+shortd(addDays(w.mon,6)),note:w.note||'',days:days};
 }
 const WEEKS=PLAN.map(buildWeek);
+// Give the tempo rides distinct structures (they otherwise all repeat the same
+// N×[3 min tempo / 1 min easy]). Rotate through varied session types; keep each
+// ride's fuel note. Watt targets scale with the user's FTP.
+(function varyTempoRides(){
+  var T=[
+    '15 min easy build · 5×[4 min tempo (125–135 W) / 2 min easy Z1] · easy spin to finish. Hold steady watts at 85–95 rpm through every rep.',
+    '15 min easy build · over-unders: 4×[3 min tempo (125–135 W) → 2 min sweet-spot (135–142 W)] straight through, 4 min easy between · easy to finish. The "over" is controlled, not a sprint — don\'t blow up.',
+    '15 min easy build · cadence tempo: 3×[6 min at tempo (125–135 W): 2 min high cadence 95–100 rpm / 2 min low cadence 60–65 rpm grind / 2 min free], 3 min easy between · easy to finish. Same watts, different cadence — builds a smoother, stronger pedal stroke.',
+    '15 min easy build · tempo pyramid 1-2-3-4-3-2-1 min (125–135 W) with equal easy Z1 between each · easy to finish. Settle into rhythm; the 4 min is the peak — stay relaxed and tall.',
+    '15 min easy build · 2×[12 min sustained tempo (125–135 W)] with 5 min easy between · easy to finish. Long and steady — hold your position and practise fuelling on the go.',
+    '15 min easy build · 3×[8 min progressive: build low→high tempo across the block (120→138 W)] with 4 min easy between · easy to finish. Start each block controlled and lift the final 2 min.'
+  ];
+  var i=0;
+  WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){
+    if(s.d==='bike'&&/tempo/i.test(s.t)){
+      var fuel='';var p=s.x?s.x.indexOf(' · '):-1;
+      if(s.x&&s.x.indexOf('🍌')===0&&p>0)fuel=s.x.slice(0,p+3);
+      s.x=fuel+T[i%T.length];i++;
+    }
+  });});});
+})();
 
 const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1',AKEY='tri-actuals-v1',OKEY='tri-others-v1';
 let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},actuals={},others={},cur=0;
