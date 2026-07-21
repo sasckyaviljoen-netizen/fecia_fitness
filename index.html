@@ -202,7 +202,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v25</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v26</span></footer>
   </div>
 </div>
 
@@ -368,22 +368,39 @@ function _distWO(dist,wu,mainBlocks,wuNote){
   blocks.push(_blk('Cool Down',1,[_d(cd,1)]));
   return blocks;
 }
+// Interval workout: Warm Up (Z2) + Main Set [work / recovery] ×R + Cool Down (Z1).
+// R and cool-down fill the whole session — no fake endurance block. Sums to m.
+function _intWO(m,wu,work,rec,lo,hi,zw){
+  var unit=work+rec;
+  var R=_cl(Math.round((m-wu-12)/unit),lo,hi);
+  var cd=m-wu-R*unit;
+  for(var k=0;k<4;k++){
+    if(cd<5&&R>lo){R--;cd=m-wu-R*unit;continue;}
+    if(cd>16&&R<hi){R++;cd=m-wu-R*unit;continue;}
+    break;
+  }
+  if(cd<4){wu-=(4-cd);cd=4;}
+  if(wu<6){wu=6;cd=m-wu-R*unit;}
+  return [_blk('Warm Up',1,[_t(wu,2)]),_blk('Main Set',R,[_t(work,zw),_t(rec,1)]),_blk('Cool Down',1,[_t(cd,1)])];
+}
 function buildBlocks(s){
   var d=s.d;if(d!=='swim'&&d!=='bike'&&d!=='run')return null;
   var t=(s.t||'').toLowerCase();
   if(d==='bike'||d==='run'){
     var m=s.m||_titleMin(s.t)||estMin(s);if(!m||m<10)return null;
-    var wu=d==='bike'?14:10,cd=d==='bike'?8:6,av=m-wu-cd;
+    var bike=d==='bike';
+    var wuE=bike?_cl(Math.round(m*0.2),10,20):_cl(Math.round(m*0.22),8,15);
+    var cdE=bike?_cl(Math.round(m*0.16),8,14):_cl(Math.round(m*0.18),6,12);
     if(/recovery/.test(t))return _timeWO(m,Math.min(10,Math.round(m*0.2)),Math.min(6,Math.round(m*0.15)),[]);
-    if(/opener/.test(t))return _timeWO(m,8,5,[_blk('Main Set',3,[_t(1,4),_t(2,1)])]);
-    if(/\beasy\b/.test(t))return _timeWO(m,wu,cd,[]);
-    if(/vo2/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.4,6,4,8),[_t(3,5),_t(3,1)])]);
-    if(/threshold|interval/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.45,9,3,6),[_t(6,4),_t(3,1)])]);
-    if(/hill/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.4,3,6,10),[_t(1,5),_t(2,1)])]);
-    if(/race\s*-?pace/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.55,13,2,4),[_t(10,3),_t(3,2)])]);
-    if(/build/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',1,[_t(Math.round(av*0.4),2),_t(Math.round(av*0.35),3),_t(Math.max(4,av-Math.round(av*0.4)-Math.round(av*0.35)),4)])]);
-    if(/tempo|sweet|sst|cruise/.test(t)){var work=4,rec=d==='bike'?2:1;return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.5,work+rec,3,7),[_t(work,3),_t(rec,1)])]);}
-    return _timeWO(m,wu,cd,[]); // endurance / long / default
+    if(/opener/.test(t))return _timeWO(m,8,6,[_blk('Main Set',3,[_t(1,4),_t(2,1)])]);
+    if(/\beasy\b/.test(t))return _timeWO(m,wuE,cdE,[]);           // endurance/easy stays a steady block
+    if(/vo2/.test(t))return _intWO(m,wuE,3,3,4,8,5);
+    if(/threshold|interval/.test(t))return bike?_intWO(m,wuE,8,4,3,6,4):_intWO(m,wuE,4,2,3,7,4);
+    if(/hill/.test(t))return _intWO(m,wuE,1,2,5,10,5);
+    if(/race\s*-?pace/.test(t))return _intWO(m,wuE,10,3,2,5,3);
+    if(/build/.test(t)){var a=m-wuE-cdE;return _timeWO(m,wuE,cdE,[_blk('Main Set',1,[_t(Math.round(a*0.4),2),_t(Math.round(a*0.35),3),_t(Math.max(4,a-Math.round(a*0.4)-Math.round(a*0.35)),4)])]);}
+    if(/tempo|sweet|sst|cruise/.test(t))return bike?_intWO(m,wuE,6,4,3,8,3):_intWO(m,wuE,4,1,3,8,3);
+    return _timeWO(m,wuE,cdE,[]); // endurance / long / default -> one steady Z2 block (correct)
   }
   var km=(s.t.match(/([\d.]+)\s*km/)||[])[1],mm=(s.t.match(/(\d+)\s*m\b/)||[])[1];
   var dist=km?Math.round(parseFloat(km)*1000):(mm?+mm:1500);
