@@ -183,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v22</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v23</span></footer>
   </div>
 </div>
 
@@ -250,26 +250,39 @@ const WEEKS=PLAN.map(buildWeek);
 (function varyTempoRides(){
   // Each template knows its main-set duration (work + recoveries) so warm-up +
   // main + cool-down always add up to the ride's total time, with minutes shown.
+  // Each template scales its rep count to the ride. Order: warm-up → tempo main
+  // set → steady Z2 endurance (the aerobic bulk) → a short fixed cool-down. So a
+  // long base ride is mostly endurance, and the cool-down is never longer than
+  // the main set. Watt targets scale with FTP.
   var T=[
-    {min:30, body:'5 × 4 min at tempo (125–135 W), with 2 min easy spin after each', cue:'Same watts on every rep, 85–95 rpm, smooth breathing'},
-    {min:32, body:'4 rounds, each run straight through:<br>&nbsp;&nbsp;— 3 min at tempo (125–135 W)<br>&nbsp;&nbsp;— then 2 min at sweet-spot (135–142 W), a touch harder<br>&nbsp;&nbsp;— 4 min easy spin between rounds', cue:'The harder “over” stays controlled — never a sprint'},
-    {min:24, body:'3 rounds of 6 min at tempo (125–135 W), holding the SAME watts while you change cadence every 2 min:<br>&nbsp;&nbsp;— 2 min fast, light spin (95–100 rpm)<br>&nbsp;&nbsp;— 2 min big-gear grind (60–65 rpm)<br>&nbsp;&nbsp;— 2 min your natural cadence<br>3 min easy spin between rounds', cue:'Only the cadence changes — the power stays the same'},
-    {min:32, body:'tempo pyramid at 125–135 W: 1 min, 2, 3, 4, 3, 2, 1 min, with an equal easy spin after each step', cue:'The 4 min is the peak — stay relaxed and tall throughout'},
-    {min:29, body:'2 × 12 min steady at tempo (125–135 W), with 5 min easy spin between', cue:'Long and even — hold your riding position and sip fuel as you go'},
-    {min:32, body:'3 × 8 min, building the effort within each block from low to high tempo (120–138 W), with 4 min easy between', cue:'Start each block controlled and lift the final 2 min'}
+    {lo:3,hi:6,unit:6, cue:'Hold the same watts on every rep at 85–95 rpm', build:function(R){return {min:R*6, text:R+' × [4 min at tempo (125–135 W) + 2 min easy spin]'};}},
+    {lo:3,hi:5,unit:8, cue:'The harder “over” stays controlled — never a sprint', build:function(R){return {min:R*5+(R-1)*3, text:R+' rounds, each: 3 min at tempo (125–135 W) then 2 min at sweet-spot (135–142 W) — 3 min easy between rounds'};}},
+    {lo:3,hi:5,unit:9, cue:'Only the cadence changes — the power stays the same', build:function(R){return {min:R*6+(R-1)*3, text:R+' rounds of 6 min at tempo (125–135 W), same watts throughout, changing cadence every 2 min — 2 min fast spin (95–100 rpm) / 2 min big-gear grind (60–65 rpm) / 2 min natural — 3 min easy between rounds'};}},
+    {lo:2,hi:4,unit:17, cue:'Long and even — settle in and hold your riding position', build:function(R){return {min:R*12+(R-1)*5, text:R+' × 12 min steady at tempo (125–135 W), 5 min easy between'};}},
+    {lo:2,hi:4,unit:12, cue:'Start each block controlled and lift the final 2 min', build:function(R){return {min:R*8+(R-1)*4, text:R+' × 8 min, building each block from low to high tempo (120–138 W), 4 min easy between'};}},
+    {lo:3,hi:5,unit:8, cue:'Right at the top of tempo — controlled but purposeful', build:function(R){return {min:R*8, text:R+' × [5 min at strong tempo (130–138 W) + 3 min easy]'};}}
   ];
   var i=0;
   WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){
     if(s.d==='bike'&&/tempo/i.test(s.t)){
       var t=T[i%T.length];i++;
       var m=s.m||estMin(s);
-      var wu=15,cd=m-wu-t.min;
-      if(cd<5){cd=5;wu=m-t.min-cd;}          // keep sum == total even on short rides
-      if(wu<5){wu=5;cd=m-t.min-wu;}
-      var struct='<b>Warm-up</b> — '+wu+' min easy, gradually building<br><b>Main set</b> ('+t.min+' min) — '+t.body+'<br><b>Cool-down</b> — '+cd+' min easy spin<br>'+t.cue;
+      var WU=12,CD=8;
+      var avail=m-WU-CD;
+      var R=Math.round((avail*0.5)/t.unit);R=Math.max(t.lo,Math.min(t.hi,R));
+      var main=t.build(R),mainMin=main.min,en=m-WU-CD-mainMin;
+      while(en<0&&R>t.lo){R--;main=t.build(R);mainMin=main.min;en=m-WU-CD-mainMin;}
+      var wu=WU,cd=CD;
+      if(en>0&&en<6){cd+=en;en=0;}            // tiny remainder → into the cool-down
+      if(en<0){cd=Math.max(5,m-wu-mainMin);en=0;}
+      var str='<b>Warm-up</b> — '+wu+' min easy, gradually building';
+      str+='<br><b>Main set</b> ('+mainMin+' min) — '+main.text;
+      if(en>=6)str+='<br><b>Steady endurance</b> — '+en+' min at easy Z2 (aerobic base: 85–95 rpm, eat &amp; drink)';
+      str+='<br><b>Cool-down</b> — '+cd+' min easy spin';
+      str+='<br>'+t.cue;
       var fuel='';var p=s.x?s.x.indexOf(' · '):-1;
       if(s.x&&s.x.indexOf('🍌')===0&&p>0)fuel=s.x.slice(0,p+3);
-      s.x=fuel+struct;
+      s.x=fuel+str;
     }
   });});});
 })();
