@@ -65,6 +65,25 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
 .sess .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sess .tag{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:7px}
 .actnote{font-size:12px;color:var(--good);font-weight:700;background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:9px;line-height:1.5}
+.wworkout{margin-bottom:2px}
+.wblk{border:1px solid var(--line);border-radius:13px;overflow:hidden;margin-bottom:11px}
+.wbh{background:var(--surface2);color:var(--muted);font-weight:700;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:10px 13px}
+.wbh-main{background:var(--text);color:var(--bg)}
+.wbs{padding:2px 13px 6px;background:var(--surface)}
+.wstep{display:flex;gap:11px;padding:12px 0 4px}
+.wn{font-weight:800;color:var(--faint);font-size:14px;min-width:18px}
+.wsb{flex:1;min-width:0}
+.wsl{font-size:14.5px;color:var(--text);font-weight:500;line-height:1.4}
+.wsl b{font-weight:700}
+.wrpe{font-size:12px;color:var(--muted);margin-top:3px}
+.wnote{color:var(--muted);font-weight:500;font-size:12.5px}
+.wgear{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap}
+.gchip{font-size:11px;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--line);padding:3px 10px;border-radius:99px}
+.wz{margin-top:10px;display:flex;align-items:center;gap:10px}
+.wzbar{flex:1;height:5px;border-radius:99px}
+.wzl{font-size:11.5px;font-weight:700;white-space:nowrap}
+.wrest{font-size:12px;color:var(--faint);font-style:italic;padding:2px 0 8px 29px}
+.wsep{height:1px;background:var(--line);margin:6px 0 0 29px}
 .ivlinkbtn,.ivunlinkbtn{background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;padding:8px 11px;border-radius:9px;cursor:pointer;margin:0 6px 6px 0}
 .ivlinkopt{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-top:7px;font-family:inherit;font-size:13px;color:var(--text);font-weight:700;cursor:pointer;line-height:1.5}
 .ivlinkopt:hover{border-color:var(--good)}
@@ -183,7 +202,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v24</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v25</span></footer>
   </div>
 </div>
 
@@ -313,6 +332,92 @@ const WEEKS=PLAN.map(buildWeek);
     }
   });});});
 })();
+
+// ---- Structured workout engine: block / step / zone layout ----
+const ZONES={
+  1:{name:'Recovery',rpe:'Can talk easily, barely feel like working',col:'#4fb477'},
+  2:{name:'Easy',rpe:'Can speak in full sentences',col:'#86c15a'},
+  3:{name:'Tempo',rpe:'Can speak in short sentences',col:'#f0a52e'},
+  4:{name:'Threshold',rpe:'Can only say a few words',col:'#ef6a34'},
+  5:{name:'VO2 Max',rpe:'Cannot hold a conversation',col:'#e0374d'}
+};
+function _blk(label,repeat,steps){return {label:label,repeat:repeat,steps:steps};}
+function _t(min,zone,o){o=o||{};o.dur=min;o.zone=zone;return o;}
+function _d(m,zone,o){o=o||{};o.dist=m;o.zone=zone;return o;}
+function _cl(v,lo,hi){return v<lo?lo:(v>hi?hi:v);}
+function _rp(target,unit,lo,hi){return _cl(Math.round(target/unit),lo,hi);}
+function _titleMin(t){var a=t.match(/(\d+)\s*h\s*(\d{2})/);if(a)return +a[1]*60+ +a[2];var b=t.match(/(\d+)\s*h\b/);if(b)return +b[1]*60;var c=t.match(/(\d+)\s*min/);if(c)return +c[1];return 0;}
+// Time-based assembler: Warm Up (Z2) + main blocks + endurance filler (Z2) + Cool Down (Z1). Sums to m.
+function _timeWO(m,wu,cd,mainBlocks){
+  var used=0;mainBlocks.forEach(function(b){var per=0;b.steps.forEach(function(st){per+=st.dur;});used+=per*b.repeat;});
+  var en=m-wu-cd-used;
+  if(en<0){cd=Math.max(4,m-wu-used);en=m-wu-cd-used;if(en<0){wu=Math.max(4,m-cd-used);en=m-wu-cd-used;}}
+  var showEn=en>=6;if(!showEn&&en>0){cd+=en;en=0;}
+  var blocks=[_blk('Warm Up',1,[_t(wu,2)])];
+  mainBlocks.forEach(function(b){blocks.push(b);});
+  if(showEn)blocks.push(_blk('Endurance',1,[_t(en,2)]));
+  blocks.push(_blk('Cool Down',1,[_t(cd,1)]));
+  return blocks;
+}
+// Distance-based assembler (swim): Warm Up + main blocks + Cool Down.
+function _distWO(dist,wu,mainBlocks,wuNote){
+  var used=0;mainBlocks.forEach(function(b){var per=0;b.steps.forEach(function(st){per+=st.dist;});used+=per*b.repeat;});
+  var cd=dist-wu-used;if(cd<100)cd=100;
+  var blocks=[_blk('Warm Up',1,[_d(wu,2,{note:wuNote||'mix swim & drill'})])];
+  mainBlocks.forEach(function(b){blocks.push(b);});
+  blocks.push(_blk('Cool Down',1,[_d(cd,1)]));
+  return blocks;
+}
+function buildBlocks(s){
+  var d=s.d;if(d!=='swim'&&d!=='bike'&&d!=='run')return null;
+  var t=(s.t||'').toLowerCase();
+  if(d==='bike'||d==='run'){
+    var m=s.m||_titleMin(s.t)||estMin(s);if(!m||m<10)return null;
+    var wu=d==='bike'?14:10,cd=d==='bike'?8:6,av=m-wu-cd;
+    if(/recovery/.test(t))return _timeWO(m,Math.min(10,Math.round(m*0.2)),Math.min(6,Math.round(m*0.15)),[]);
+    if(/opener/.test(t))return _timeWO(m,8,5,[_blk('Main Set',3,[_t(1,4),_t(2,1)])]);
+    if(/\beasy\b/.test(t))return _timeWO(m,wu,cd,[]);
+    if(/vo2/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.4,6,4,8),[_t(3,5),_t(3,1)])]);
+    if(/threshold|interval/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.45,9,3,6),[_t(6,4),_t(3,1)])]);
+    if(/hill/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.4,3,6,10),[_t(1,5),_t(2,1)])]);
+    if(/race\s*-?pace/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.55,13,2,4),[_t(10,3),_t(3,2)])]);
+    if(/build/.test(t))return _timeWO(m,wu,cd,[_blk('Main Set',1,[_t(Math.round(av*0.4),2),_t(Math.round(av*0.35),3),_t(Math.max(4,av-Math.round(av*0.4)-Math.round(av*0.35)),4)])]);
+    if(/tempo|sweet|sst|cruise/.test(t)){var work=4,rec=d==='bike'?2:1;return _timeWO(m,wu,cd,[_blk('Main Set',_rp(av*0.5,work+rec,3,7),[_t(work,3),_t(rec,1)])]);}
+    return _timeWO(m,wu,cd,[]); // endurance / long / default
+  }
+  var km=(s.t.match(/([\d.]+)\s*km/)||[])[1],mm=(s.t.match(/(\d+)\s*m\b/)||[])[1];
+  var dist=km?Math.round(parseFloat(km)*1000):(mm?+mm:1500);
+  var wu=_cl(Math.round(dist*0.18/50)*50,200,400),mv=Math.max(200,dist-wu-200);
+  function set(unit,zone,rest,gear,note,label){return [_blk(label||'Main Set',Math.max(2,Math.round(mv/unit)),[_d(unit,zone,{rest:rest,gear:gear||null,note:note})])];}
+  if(/recovery/.test(t))return _distWO(dist,wu,set(100,1,20,null,'easy, relaxed'));
+  if(/threshold|css/.test(t))return _distWO(dist,wu,set(100,4,15,null,'race-pace, repeatable'));
+  if(/sprint|\bspeed\b/.test(t)&&!/aerobic/.test(t))return _distWO(dist,wu,set(50,5,20,null,'fast — hold your form'));
+  if(/pull/.test(t))return _distWO(dist,wu,set(150,2,20,['Pull Buoy','Paddles'],'long strong catch'));
+  if(/descend/.test(t))return _distWO(dist,wu,set(100,3,15,null,'get faster through the set'));
+  if(/race|tt|time trial/.test(t))return _distWO(dist,wu,set(200,3,20,null,'even race pace; sight every ~6 strokes'));
+  if(/technique|drill|form|kick/.test(t)){var a=Math.max(2,Math.round(mv/3/50));return _distWO(dist,wu,[_blk('Kick',a,[_d(50,2,{rest:20,gear:['Fins'],note:'strong steady kick'})]),_blk('Drill',a,[_d(50,2,{rest:15,note:'25 drill / 25 swim'})]),_blk('Swim',Math.max(2,Math.round(mv/3/100)),[_d(100,2,{rest:15,note:'smooth, long stroke'})])]);}
+  return _distWO(dist,wu,set(100,2,15,null,'build through — start easy, finish at tempo')); // endurance / default
+}
+function renderBlocks(blocks){
+  if(!blocks||!blocks.length)return '';
+  var n=0,out='<div class="wworkout">';
+  blocks.forEach(function(b){
+    out+='<div class="wblk"><div class="wbh'+(/main|kick|drill|swim/i.test(b.label)?' wbh-main':'')+'">'+esc(b.label)+' · Repeat ×'+b.repeat+'</div><div class="wbs">';
+    b.steps.forEach(function(st,idx){
+      n++;var z=ZONES[st.zone]||ZONES[2];
+      var amt=st.dur!=null?(st.dur+' min'):(st.dist+' m');
+      var note=st.note?' <span class="wnote">('+esc(st.note)+')</span>':'';
+      var gear=(st.gear&&st.gear.length)?'<div class="wgear">'+st.gear.map(function(g){return '<span class="gchip">'+esc(g)+'</span>';}).join('')+'</div>':'';
+      out+='<div class="wstep"><span class="wn">'+n+'.</span><div class="wsb"><div class="wsl"><b>'+amt+'</b> at a <b>'+z.name+'</b> pace'+note+'</div><div class="wrpe">'+esc(z.rpe)+'</div>'+gear+'<div class="wz"><span class="wzbar" style="background:'+z.col+'"></span><span class="wzl" style="color:'+z.col+'">Zone '+st.zone+'</span></div></div></div>';
+      if(st.rest)out+='<div class="wrest">Rest '+st.rest+' sec</div>';
+      if(idx<b.steps.length-1)out+='<div class="wsep"></div>';
+    });
+    out+='</div></div>';
+  });
+  return out+'</div>';
+}
+// Attach structured blocks to every swim / bike / run session.
+WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){var b=buildBlocks(s);if(b)s.blocks=b;});});});
 
 const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1',AKEY='tri-actuals-v1',OKEY='tri-others-v1';
 let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},actuals={},others={},cur=0;
@@ -475,7 +580,8 @@ function cardHTML(s,iso){
     actNote='<div class="actnote">✔ Actual (intervals.icu): '+(ap.length?ap.join(' · '):'logged')+(A.name?' — '+esc(A.name):'')+'</div>';}
   var full=s.x?scaleSpec(s):'';var fuelNote='';var breakdown=full;
   if(full.indexOf('🍌')===0){var fi=full.indexOf(' · ');if(fi>0){fuelNote=full.slice(0,fi);breakdown=full.slice(fi+3);}}
-  var structPart=breakdown,dp=breakdown.indexOf('. ');if(dp>0){structPart=breakdown.slice(0,dp);}else if(breakdown.slice(-1)==='.'){structPart=breakdown.slice(0,-1);}var specMain=structPart?'<div class="spec-main">'+structPart+'</div>':'';
+  var structPart=breakdown,dp=breakdown.indexOf('. ');if(dp>0){structPart=breakdown.slice(0,dp);}else if(breakdown.slice(-1)==='.'){structPart=breakdown.slice(0,-1);}
+  var specMain=s.blocks?renderBlocks(s.blocks):(structPart?'<div class="spec-main">'+structPart+'</div>':'');
   var tips='<details class="sub"><summary>Tips &amp; how it should feel</summary><div class="subin"><div class="coach">'+coach(s)+'</div>'+(fuelNote?'<div class="fuel">'+fuelNote+'</div>':'')+'</div></details>';
   var logsub='<details class="sub"><summary>Log it</summary><div class="subin">'+log+'</div></details>';
   var linksub='<details class="sub"><summary>Link an intervals.icu workout</summary><div class="subin">'
