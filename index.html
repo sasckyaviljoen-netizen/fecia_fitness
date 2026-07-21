@@ -183,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v23</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v24</span></footer>
   </div>
 </div>
 
@@ -241,7 +241,7 @@ function buildWeek(w){
     arr[6].push({d:'swim',t:sp.t,x:sp.x,o:0,m:35});
   }
   const days=arr.map((ss,i)=>{const iso=addDays(w.mon,i);ss.forEach((s,si)=>{s._id=w.id+'-'+i+'-'+si;});return {iso:iso,label:lbl(iso),s:ss};});
-  return {id:w.id,name:w.name,range:shortd(w.mon)+' – '+shortd(addDays(w.mon,6)),note:w.note||'',days:days};
+  return {id:w.id,name:w.name,phase:w.phase||'',range:shortd(w.mon)+' – '+shortd(addDays(w.mon,6)),note:w.note||'',days:days};
 }
 const WEEKS=PLAN.map(buildWeek);
 // Give the tempo rides distinct structures (they otherwise all repeat the same
@@ -283,6 +283,33 @@ const WEEKS=PLAN.map(buildWeek);
       var fuel='';var p=s.x?s.x.indexOf(' · '):-1;
       if(s.x&&s.x.indexOf('🍌')===0&&p>0)fuel=s.x.slice(0,p+3);
       s.x=fuel+str;
+    }
+  });});});
+})();
+
+// Give the aerobic "Easy Swim" sessions variety — rotate through pull, kick/drill,
+// descending, race-pace, technique and aerobic+speed, keeping each swim's distance
+// (so volume still builds). Taper & race-week swims are left easy on purpose.
+(function varyEasySwims(){
+  function rnd(v,per){var n=Math.round(v/per);return n<2?2:n;}
+  var T=[
+    {focus:'endurance', main:function(V){return rnd(V,100)+'×100 — build through the set: start easy Z2, make each 100 a touch quicker, finish at tempo (r15)';}},
+    {focus:'pull', main:function(V){return rnd(V,150)+'×150 PULL (buoy; paddles if you have them) — steady aerobic, long strong catch, high elbow (r20)';}},
+    {focus:'descending', main:function(V){return rnd(V,100)+'×100 descending in groups of 4 (each 4th a little faster), aerobic (r15)';}},
+    {focus:'race-pace feel', main:function(V){return rnd(V,200)+'×200 at steady cruise pace, 20 s rest — hold even pacing and practise sighting every ~6 strokes (r20)';}},
+    {focus:'technique', main:function(V){return rnd(V/3,50)+'×50 kick (r20) · '+rnd(V/3,50)+'×50 drill/swim by 25 (r15) · '+rnd(V/3,100)+'×100 smooth swim, long relaxed stroke (r15)';}},
+    {focus:'aerobic + speed', main:function(V){return rnd(V,100)+'×100 steady with a fast 15 m surge into each wall (r15)';}}
+  ];
+  var i=0;
+  WEEKS.forEach(function(w){if(w.phase==='Taper')return;w.days.forEach(function(day){day.s.forEach(function(s){
+    if(s.d==='swim'&&/easy swim/i.test(s.t)){
+      var t=T[i%T.length];i++;
+      var km=(s.t.match(/([\d.]+)\s*km/)||[])[1];
+      var dist=km?Math.round(parseFloat(km)*1000):1400;
+      var distStr=km?km+' km':(dist+' m');
+      var mainV=Math.max(400,dist-500);       // reserve ~300 WU + ~200 CD
+      s.t='Swim · '+distStr+' — '+t.focus;
+      s.x='WU 300 easy (mix swim/drill) · MAIN '+t.main(mainV)+' · CD 200 easy. Long relaxed stroke, exhale into the water.';
     }
   });});});
 })();
