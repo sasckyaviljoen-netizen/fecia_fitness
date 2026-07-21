@@ -183,7 +183,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v21</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v22</span></footer>
   </div>
 </div>
 
@@ -248,20 +248,28 @@ const WEEKS=PLAN.map(buildWeek);
 // N×[3 min tempo / 1 min easy]). Rotate through varied session types; keep each
 // ride's fuel note. Watt targets scale with the user's FTP.
 (function varyTempoRides(){
+  // Each template knows its main-set duration (work + recoveries) so warm-up +
+  // main + cool-down always add up to the ride's total time, with minutes shown.
   var T=[
-    '<b>Warm-up</b> — 15 min easy, gradually building<br><b>Main set</b> — 5 × 4 min at tempo (125–135 W), with 2 min easy spin after each<br><b>Cool-down</b> — easy spin to finish<br>Same watts on every rep, 85–95 rpm, smooth breathing',
-    '<b>Warm-up</b> — 15 min easy, gradually building<br><b>Main set</b> — 4 rounds, each run straight through:<br>&nbsp;&nbsp;— 3 min at tempo (125–135 W)<br>&nbsp;&nbsp;— then 2 min at sweet-spot (135–142 W), a touch harder<br>&nbsp;&nbsp;— 4 min easy spin between rounds<br><b>Cool-down</b> — easy spin to finish<br>The harder “over” stays controlled — never a sprint',
-    '<b>Warm-up</b> — 15 min easy, gradually building<br><b>Main set</b> — 3 rounds of 6 min at tempo (125–135 W), holding the SAME watts while you change cadence every 2 min:<br>&nbsp;&nbsp;— 2 min fast, light spin (95–100 rpm)<br>&nbsp;&nbsp;— 2 min big-gear grind (60–65 rpm)<br>&nbsp;&nbsp;— 2 min your natural cadence<br>3 min easy spin between rounds<br><b>Cool-down</b> — easy spin to finish<br>Only the cadence changes — the power stays the same',
-    '<b>Warm-up</b> — 15 min easy, gradually building<br><b>Main set</b> — one tempo pyramid at 125–135 W: 1 min, 2, 3, 4, 3, 2, 1 min, with an equal easy spin after each step<br><b>Cool-down</b> — easy spin to finish<br>The 4 min is the peak — stay relaxed and tall throughout',
-    '<b>Warm-up</b> — 15 min easy, gradually building<br><b>Main set</b> — 2 × 12 min steady at tempo (125–135 W), with 5 min easy spin between<br><b>Cool-down</b> — easy spin to finish<br>Long and even — hold your riding position and sip fuel as you go',
-    '<b>Warm-up</b> — 15 min easy, gradually building<br><b>Main set</b> — 3 × 8 min, building the effort within each block from low to high tempo (120–138 W), with 4 min easy between<br><b>Cool-down</b> — easy spin to finish<br>Start each block controlled and lift the final 2 min'
+    {min:30, body:'5 × 4 min at tempo (125–135 W), with 2 min easy spin after each', cue:'Same watts on every rep, 85–95 rpm, smooth breathing'},
+    {min:32, body:'4 rounds, each run straight through:<br>&nbsp;&nbsp;— 3 min at tempo (125–135 W)<br>&nbsp;&nbsp;— then 2 min at sweet-spot (135–142 W), a touch harder<br>&nbsp;&nbsp;— 4 min easy spin between rounds', cue:'The harder “over” stays controlled — never a sprint'},
+    {min:24, body:'3 rounds of 6 min at tempo (125–135 W), holding the SAME watts while you change cadence every 2 min:<br>&nbsp;&nbsp;— 2 min fast, light spin (95–100 rpm)<br>&nbsp;&nbsp;— 2 min big-gear grind (60–65 rpm)<br>&nbsp;&nbsp;— 2 min your natural cadence<br>3 min easy spin between rounds', cue:'Only the cadence changes — the power stays the same'},
+    {min:32, body:'tempo pyramid at 125–135 W: 1 min, 2, 3, 4, 3, 2, 1 min, with an equal easy spin after each step', cue:'The 4 min is the peak — stay relaxed and tall throughout'},
+    {min:29, body:'2 × 12 min steady at tempo (125–135 W), with 5 min easy spin between', cue:'Long and even — hold your riding position and sip fuel as you go'},
+    {min:32, body:'3 × 8 min, building the effort within each block from low to high tempo (120–138 W), with 4 min easy between', cue:'Start each block controlled and lift the final 2 min'}
   ];
   var i=0;
   WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){
     if(s.d==='bike'&&/tempo/i.test(s.t)){
+      var t=T[i%T.length];i++;
+      var m=s.m||estMin(s);
+      var wu=15,cd=m-wu-t.min;
+      if(cd<5){cd=5;wu=m-t.min-cd;}          // keep sum == total even on short rides
+      if(wu<5){wu=5;cd=m-t.min-wu;}
+      var struct='<b>Warm-up</b> — '+wu+' min easy, gradually building<br><b>Main set</b> ('+t.min+' min) — '+t.body+'<br><b>Cool-down</b> — '+cd+' min easy spin<br>'+t.cue;
       var fuel='';var p=s.x?s.x.indexOf(' · '):-1;
       if(s.x&&s.x.indexOf('🍌')===0&&p>0)fuel=s.x.slice(0,p+3);
-      s.x=fuel+T[i%T.length];i++;
+      s.x=fuel+struct;
     }
   });});});
 })();
