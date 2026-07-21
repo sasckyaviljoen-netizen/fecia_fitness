@@ -202,7 +202,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v27</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v28</span></footer>
   </div>
 </div>
 
@@ -394,24 +394,95 @@ function _intWO(m,wu,work,rec,lo,hi,zw){
   if(wu<6){wu=6;cd=m-wu-R*unit;}
   return [_blk('Warm Up',1,[_t(wu,2)]),_blk('Main Set',R,[_t(work,zw),_t(rec,1)]),_blk('Cool Down',1,[_t(cd,2)])];
 }
+// ---- Professional session designer ----
+// A hard session = intensity-based warm-up (build + primers) → a real main-set
+// PRESCRIPTION (rotated for variety, progressed base→build→peak) → optional Z2
+// endurance on long rides → short cool-down. Everything sums to the total.
+function _phaseIdx(ph){ph=(ph||'').toLowerCase();return /peak/.test(ph)?2:(/build/.test(ph)?1:0);}
+var _CNT={};
+function _MS(reps,steps){var per=0;steps.forEach(function(s){per+=s[0];});return {min:reps*per,blocks:[_blk('Main Set',reps,steps.map(function(s){return _t(s[0],s[1]);}))]};}
+function _sc(av,work,wz,rec,lo,hi){var u=work+rec,r=_cl(Math.round(av/u),lo,hi);while(r>lo&&r*u>av)r--;return _MS(r,[[work,wz],[rec,1]]);}
+function _ou(av,z3,z4,rec,lo,hi){var u=z3+z4+rec,r=_cl(Math.round(av/u),lo,hi);while(r>lo&&r*u>av)r--;return _MS(r,[[z3,3],[z4,4],[rec,1]]);}
+function _cont(av,wz,lo,hi){var dd=_cl(Math.round(av*0.85),lo,hi);if(dd>av)dd=av;return {min:dd,blocks:[_blk('Main Set',1,[_t(dd,wz)])]};}
+function _MSs(av,fastSec,fz,easySec){var per=(fastSec+easySec)/60,r=_cl(Math.round(av/per),4,16);while(r>4&&r*per>av)r--;return {min:Math.round(r*per),blocks:[_blk('Main Set',r,[_t2(fastSec,fz),_t2(easySec,1)])]};}
+var _FMT={
+  'bike-tempo':[
+    {a:16,f:function(av,d){return _cont(av,3,15,34);}},
+    {a:30,f:function(av,d){return _sc(av,[10,11,12][d],3,5,2,4);}},
+    {a:34,f:function(av,d){return _ou(av,3,[2,2,3][d],3,3,6);}},
+    {a:40,f:function(av,d){return _sc(av,[16,18,20][d],3,7,2,3);}}
+  ],
+  'bike-threshold':[
+    {a:24,f:function(av,d){return _sc(av,[8,10,12][d],4,5,2,4);}},
+    {a:40,f:function(av,d){return _sc(av,[15,18,20][d],4,8,1,2);}},
+    {a:28,f:function(av,d){return _sc(av,[5,6,6][d],4,3,3,6);}}
+  ],
+  'bike-vo2':[
+    {a:20,f:function(av,d){return _sc(av,3,5,3,4,7);}},
+    {a:14,f:function(av,d){return _sc(av,[2,2,3][d],5,2,4,8);}},
+    {a:12,f:function(av,d){return _MSs(av,30,5,30);}}
+  ],
+  'bike-race':[{a:20,f:function(av,d){return _sc(av,[10,12,15][d],3,4,2,4);}}],
+  'run-tempo':[
+    {a:14,f:function(av,d){return _cont(av,3,12,30);}},
+    {a:22,f:function(av,d){return _sc(av,[8,10,12][d],3,3,2,3);}},
+    {a:18,f:function(av,d){return _sc(av,[5,6,6][d],3,2,3,5);}}
+  ],
+  'run-threshold':[
+    {a:18,f:function(av,d){return _sc(av,[4,5,5][d],4,2,3,6);}},
+    {a:20,f:function(av,d){return _sc(av,[6,8,8][d],4,3,2,4);}},
+    {a:24,f:function(av,d){return _sc(av,[8,10,10][d],4,3,2,3);}}
+  ],
+  'run-vo2':[
+    {a:14,f:function(av,d){return _sc(av,[2,3,3][d],5,2,4,6);}},
+    {a:12,f:function(av,d){return _MSs(av,45,5,75);}},
+    {a:12,f:function(av,d){return _MSs(av,60,5,90);}}
+  ],
+  'run-hill':[{a:12,f:function(av,d){return _sc(av,1,5,2,5,10);}}],
+  'run-race':[{a:18,f:function(av,d){return _sc(av,[8,10,12][d],3,2,2,4);}}]
+};
+function _design(key,m,pz,cd,dose){
+  var fmts=_FMT[key];if(!fmts)return null;
+  var wuBase=_cl(Math.round(m*0.16),6,12),nPrim=m>=50?3:2,wuMin=wuBase+2*nPrim,minCd=cd;
+  var av=m-wuMin-minCd;
+  if(av<12){wuBase=_cl(Math.round(m*0.12),5,9);nPrim=1;wuMin=wuBase+2;av=m-wuMin-minCd;}
+  var elig=fmts.filter(function(x){return x.a<=av;});if(!elig.length)elig=[fmts[0]];
+  _CNT[key]=(_CNT[key]||0)+1;
+  var set=elig[(_CNT[key]-1)%elig.length].f(av,dose);
+  if(set.min>av)set=_sc(av,4,({'bike-vo2':5,'run-vo2':5}[key]||(key.indexOf('threshold')>=0?4:3)),2,1,6);
+  var rem=m-wuMin-set.min;if(rem<4){set=_sc(av,3,3,2,1,4);rem=m-wuMin-set.min;}
+  var wu=nPrim>0?[_blk('Warm Up',1,[_t(wuBase,2)]),_blk('Primers',nPrim,[_t(1,pz),_t(1,1)])]:[_blk('Warm Up',1,[_t(wuMin,2)])];
+  var blocks=wu.concat(set.blocks),cdf;
+  // Cool-down stays short & fixed. Any real aerobic time left over becomes a
+  // Z2 Endurance block rather than an absurdly long cool-down.
+  var body=rem-minCd;
+  if(body>=5){blocks.push(_blk('Endurance',1,[_t(body,2)]));cdf=minCd;}else{cdf=Math.max(4,rem);}
+  blocks.push(_blk('Cool Down',1,[_t(cdf,2)]));
+  return blocks;
+}
+// Bike endurance/long: steady Z2, with a couple of tempo efforts once you're in build/peak.
+function _bikeEnd(m,dose){
+  var wu=_cl(Math.round(m*0.12),8,14),cd=8;
+  if(dose>=1&&m>=70){var r=dose>=2?3:2;var effM=r*(8+4);var body=m-wu-cd-effM;
+    return [_blk('Warm Up',1,[_t(wu,2)]),_blk('Endurance',1,[_t(Math.round(body*0.6),2)]),_blk('Tempo efforts',r,[_t(8,3),_t(4,1)]),_blk('Endurance',1,[_t(body-Math.round(body*0.6),2)]),_blk('Cool Down',1,[_t(cd,2)])];}
+  return [_blk('Warm Up',1,[_t(wu,2)]),_blk('Endurance',1,[_t(m-wu-cd,2)]),_blk('Cool Down',1,[_t(cd,2)])];
+}
 function buildBlocks(s){
   var d=s.d;if(d!=='swim'&&d!=='bike'&&d!=='run')return null;
   var t=(s.t||'').toLowerCase();
   if(d==='bike'||d==='run'){
     var m=s.m||_titleMin(s.t)||estMin(s);if(!m||m<10)return null;
-    var bike=d==='bike';
-    var wuE=bike?_cl(Math.round(m*0.2),10,20):_cl(Math.round(m*0.22),8,15);
-    var cdE=bike?_cl(Math.round(m*0.16),8,14):_cl(Math.round(m*0.18),6,12);
-    if(/recovery/.test(t))return _timeWO(m,Math.min(10,Math.round(m*0.2)),Math.min(6,Math.round(m*0.15)),[]);
-    if(/opener/.test(t))return _timeWO(m,8,6,[_blk('Main Set',3,[_t(1,4),_t(2,1)])]);
-    if(/\beasy\b/.test(t))return bike?_timeWO(m,wuE,cdE,[]):_runEasy(m);
-    if(/vo2/.test(t))return _intWO(m,wuE,3,3,4,8,5);
-    if(/threshold|interval/.test(t))return bike?_intWO(m,wuE,8,4,3,6,4):_intWO(m,wuE,4,2,3,7,4);
-    if(/hill/.test(t))return _intWO(m,wuE,1,2,5,10,5);
-    if(/race\s*-?pace/.test(t))return _intWO(m,wuE,10,3,2,5,3);
-    if(/build/.test(t)){var a=m-wuE-cdE;return _timeWO(m,wuE,cdE,[_blk('Main Set',1,[_t(Math.round(a*0.4),2),_t(Math.round(a*0.35),3),_t(Math.max(4,a-Math.round(a*0.4)-Math.round(a*0.35)),4)])]);}
-    if(/tempo|sweet|sst|cruise/.test(t))return bike?_intWO(m,wuE,6,4,3,8,3):_intWO(m,wuE,4,1,3,8,3);
-    return bike?_timeWO(m,wuE,cdE,[]):_runEasy(m); // endurance / long / default
+    var bike=d==='bike',dose=_phaseIdx(s._ph),cd=bike?8:6;
+    if(/recovery/.test(t))return [_blk('Warm Up',1,[_t(Math.min(8,Math.round(m*0.15)),1)]),_blk('Main Set',1,[_t(m-Math.min(8,Math.round(m*0.15))-5,2)]),_blk('Cool Down',1,[_t(5,1)])];
+    if(/opener/.test(t))return [_blk('Warm Up',1,[_t(Math.max(8,m-14),2)]),_blk('Primers',4,[_t(1,4),_t(2,1)]),_blk('Cool Down',1,[_t(m-Math.max(8,m-14)-12,2)])];
+    if(/vo2/.test(t))return _design(bike?'bike-vo2':'run-vo2',m,5,cd,dose);
+    if(/hill/.test(t))return _design('run-hill',m,5,cd,dose);
+    if(/threshold|interval/.test(t))return _design(bike?'bike-threshold':'run-threshold',m,4,cd,dose);
+    if(/race\s*-?pace/.test(t))return _design(bike?'bike-race':'run-race',m,3,cd,dose);
+    if(/build/.test(t)){var wuB=bike?12:10,cdB=bike?8:6,a=m-wuB-cdB;return [_blk('Warm Up',1,[_t(wuB,2)]),_blk('Progressive',1,[_t(Math.round(a*0.4),2),_t(Math.round(a*0.35),3),_t(Math.max(4,a-Math.round(a*0.4)-Math.round(a*0.35)),4)]),_blk('Cool Down',1,[_t(cdB,2)])];}
+    if(/tempo|sweet|sst|cruise/.test(t))return _design(bike?'bike-tempo':'run-tempo',m,4,cd,dose);
+    if(/\beasy\b/.test(t))return bike?_bikeEnd(m,0):_runEasy(m);
+    return bike?_bikeEnd(m,dose):_runEasy(m); // endurance / long / default
   }
   var km=(s.t.match(/([\d.]+)\s*km/)||[])[1],mm=(s.t.match(/(\d+)\s*m\b/)||[])[1];
   var dist=km?Math.round(parseFloat(km)*1000):(mm?+mm:1500);
@@ -444,8 +515,8 @@ function renderBlocks(blocks){
   });
   return out+'</div>';
 }
-// Attach structured blocks to every swim / bike / run session.
-WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){var b=buildBlocks(s);if(b)s.blocks=b;});});});
+// Attach structured blocks to every swim / bike / run session (phase drives progression).
+WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){s._ph=w.phase;var b=buildBlocks(s);if(b)s.blocks=b;});});});
 
 const KEY='tri-progress-v1',SKEY='tri-settings-v1',LKEY='tri-logs-v1',MKEY='tri-moves-v1',XKEY='tri-extra-v1',EKEY='tri-edits-v1',IVKEY='tri-ivdone-v1',AKEY='tri-actuals-v1',OKEY='tri-others-v1';
 let progress={},settings={ftp:150,run:'5:15',swim:'2:20'},logs={},moves={},extra={},edits={},ivdone={},actuals={},others={},cur=0;
