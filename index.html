@@ -202,7 +202,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v26</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v27</span></footer>
   </div>
 </div>
 
@@ -356,7 +356,18 @@ function _timeWO(m,wu,cd,mainBlocks){
   var blocks=[_blk('Warm Up',1,[_t(wu,2)])];
   mainBlocks.forEach(function(b){blocks.push(b);});
   if(showEn)blocks.push(_blk('Endurance',1,[_t(en,2)]));
-  blocks.push(_blk('Cool Down',1,[_t(cd,1)]));
+  blocks.push(_blk('Cool Down',1,[_t(cd,2)]));   // cool-down is Easy (Z2), like the reference
+  return blocks;
+}
+function _t2(secs,zone,o){o=o||{};o.secs=secs;o.zone=zone;return o;}
+// Easy/endurance RUN: warm-up + steady Z2 + a few strides (20 s fast / 40 s jog) + cool-down.
+function _runEasy(m){
+  var wu=_cl(Math.round(m*0.15),8,15),cd=_cl(Math.round(m*0.12),5,10);
+  var N=m>=45?6:(m>=30?4:0);                     // strides only on runs long enough
+  var body=m-wu-cd-N;if(body<4){body=4;cd=m-wu-body-N;}
+  var blocks=[_blk('Warm Up',1,[_t(wu,2)]),_blk('Steady',1,[_t(body,2)])];
+  if(N>0)blocks.push(_blk('Strides',N,[_t2(20,5,{note:'relaxed & fast, not a sprint'}),_t2(40,1)]));
+  blocks.push(_blk('Cool Down',1,[_t(cd,2)]));
   return blocks;
 }
 // Distance-based assembler (swim): Warm Up + main blocks + Cool Down.
@@ -381,7 +392,7 @@ function _intWO(m,wu,work,rec,lo,hi,zw){
   }
   if(cd<4){wu-=(4-cd);cd=4;}
   if(wu<6){wu=6;cd=m-wu-R*unit;}
-  return [_blk('Warm Up',1,[_t(wu,2)]),_blk('Main Set',R,[_t(work,zw),_t(rec,1)]),_blk('Cool Down',1,[_t(cd,1)])];
+  return [_blk('Warm Up',1,[_t(wu,2)]),_blk('Main Set',R,[_t(work,zw),_t(rec,1)]),_blk('Cool Down',1,[_t(cd,2)])];
 }
 function buildBlocks(s){
   var d=s.d;if(d!=='swim'&&d!=='bike'&&d!=='run')return null;
@@ -393,14 +404,14 @@ function buildBlocks(s){
     var cdE=bike?_cl(Math.round(m*0.16),8,14):_cl(Math.round(m*0.18),6,12);
     if(/recovery/.test(t))return _timeWO(m,Math.min(10,Math.round(m*0.2)),Math.min(6,Math.round(m*0.15)),[]);
     if(/opener/.test(t))return _timeWO(m,8,6,[_blk('Main Set',3,[_t(1,4),_t(2,1)])]);
-    if(/\beasy\b/.test(t))return _timeWO(m,wuE,cdE,[]);           // endurance/easy stays a steady block
+    if(/\beasy\b/.test(t))return bike?_timeWO(m,wuE,cdE,[]):_runEasy(m);
     if(/vo2/.test(t))return _intWO(m,wuE,3,3,4,8,5);
     if(/threshold|interval/.test(t))return bike?_intWO(m,wuE,8,4,3,6,4):_intWO(m,wuE,4,2,3,7,4);
     if(/hill/.test(t))return _intWO(m,wuE,1,2,5,10,5);
     if(/race\s*-?pace/.test(t))return _intWO(m,wuE,10,3,2,5,3);
     if(/build/.test(t)){var a=m-wuE-cdE;return _timeWO(m,wuE,cdE,[_blk('Main Set',1,[_t(Math.round(a*0.4),2),_t(Math.round(a*0.35),3),_t(Math.max(4,a-Math.round(a*0.4)-Math.round(a*0.35)),4)])]);}
     if(/tempo|sweet|sst|cruise/.test(t))return bike?_intWO(m,wuE,6,4,3,8,3):_intWO(m,wuE,4,1,3,8,3);
-    return _timeWO(m,wuE,cdE,[]); // endurance / long / default -> one steady Z2 block (correct)
+    return bike?_timeWO(m,wuE,cdE,[]):_runEasy(m); // endurance / long / default
   }
   var km=(s.t.match(/([\d.]+)\s*km/)||[])[1],mm=(s.t.match(/(\d+)\s*m\b/)||[])[1];
   var dist=km?Math.round(parseFloat(km)*1000):(mm?+mm:1500);
@@ -419,10 +430,10 @@ function renderBlocks(blocks){
   if(!blocks||!blocks.length)return '';
   var n=0,out='<div class="wworkout">';
   blocks.forEach(function(b){
-    out+='<div class="wblk"><div class="wbh'+(/main|kick|drill|swim/i.test(b.label)?' wbh-main':'')+'">'+esc(b.label)+' · Repeat ×'+b.repeat+'</div><div class="wbs">';
+    out+='<div class="wblk"><div class="wbh'+(/main|kick|drill|swim|strides/i.test(b.label)?' wbh-main':'')+'">'+esc(b.label)+' · Repeat ×'+b.repeat+'</div><div class="wbs">';
     b.steps.forEach(function(st,idx){
       n++;var z=ZONES[st.zone]||ZONES[2];
-      var amt=st.dur!=null?(st.dur+' min'):(st.dist+' m');
+      var amt=st.dur!=null?(st.dur+' min'):(st.secs!=null?(st.secs+' sec'):(st.dist+' m'));
       var note=st.note?' <span class="wnote">('+esc(st.note)+')</span>':'';
       var gear=(st.gear&&st.gear.length)?'<div class="wgear">'+st.gear.map(function(g){return '<span class="gchip">'+esc(g)+'</span>';}).join('')+'</div>':'';
       out+='<div class="wstep"><span class="wn">'+n+'.</span><div class="wsb"><div class="wsl"><b>'+amt+'</b> at a <b>'+z.name+'</b> pace'+note+'</div><div class="wrpe">'+esc(z.rpe)+'</div>'+gear+'<div class="wz"><span class="wzbar" style="background:'+z.col+'"></span><span class="wzl" style="color:'+z.col+'">Zone '+st.zone+'</span></div></div></div>';

@@ -2,7 +2,7 @@
  *  App-shell caching so the tracker installs and runs offline on iOS.
  *  Bump CACHE when you change cached assets to force an update.
  */
-var CACHE = "r703-v26";
+var CACHE = "r703-v27";
 
 // Relative paths resolve against the SW scope, so this works at a subpath too
 // (e.g. username.github.io/fecia_fitness/).
