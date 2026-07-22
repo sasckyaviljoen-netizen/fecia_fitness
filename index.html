@@ -275,13 +275,16 @@ const WEEKS=PLAN.map(buildWeek);
   // the main set. Watt targets scale with FTP.
   // Every template's main set is written in the bracketed N×[…] form the workout
   // parser reads, so the note text and the rendered blocks are always the same set.
+  // No repeat has two adjacent same-zone steps (that reads as "do tempo, then tempo,
+  // then tempo"). Each rep is either one work block + easy, or a genuine over-under
+  // where the zones actually change (tempo → threshold).
   var T=[
-    {lo:3,hi:6,unit:6, cue:'Hold the same watts on every rep at 85–95 rpm', build:function(R){return {min:R*6, text:R+' × [4 min at tempo (125–135 W) / 2 min easy spin]'};}},
-    {lo:3,hi:5,unit:8, cue:'The harder “over” stays controlled — never a sprint', build:function(R){return {min:R*8, text:R+' × [3 min at tempo (125–135 W) + 2 min at sweet-spot (135–142 W) / 3 min easy]'};}},
-    {lo:3,hi:5,unit:9, cue:'Only the cadence changes — the power stays the same', build:function(R){return {min:R*9, text:R+' × [2 min at tempo, fast spin 95–100 rpm (125–135 W) + 2 min at tempo, big-gear 60–65 rpm (125–135 W) + 2 min at tempo, natural cadence (125–135 W) / 3 min easy]'};}},
-    {lo:2,hi:4,unit:17, cue:'Long and even — settle in and hold your riding position', build:function(R){return {min:R*17, text:R+' × [12 min steady at tempo (125–135 W) / 5 min easy]'};}},
-    {lo:2,hi:4,unit:12, cue:'Start each block controlled and lift the final 2 min', build:function(R){return {min:R*12, text:R+' × [8 min building from low to high tempo (120–138 W) / 4 min easy]'};}},
-    {lo:3,hi:5,unit:8, cue:'Right at the top of tempo — controlled but purposeful', build:function(R){return {min:R*8, text:R+' × [5 min at strong tempo (130–138 W) / 3 min easy]'};}}
+    {lo:3,unit:6,  cue:'Hold the same watts on every rep at 85–95 rpm', build:function(R){return {min:R*6, text:R+' × [4 min at tempo (125–135 W) / 2 min easy spin]'};}},
+    {lo:3,unit:12, cue:'Sweet-spot — comfortably hard, just above tempo; hold it steady', build:function(R){return {min:R*12, text:R+' × [8 min at sweet-spot (135–142 W) / 4 min easy]'};}},
+    {lo:3,unit:7,  cue:'Over-under: lift to threshold for the final minute, then settle back to tempo', build:function(R){return {min:R*7, text:R+' × [3 min at tempo (125–135 W) + 1 min at threshold (140–150 W) / 3 min easy]'};}},
+    {lo:2,unit:17, cue:'Long and even — settle in and hold your riding position', build:function(R){return {min:R*17, text:R+' × [12 min steady at tempo (125–135 W) / 5 min easy]'};}},
+    {lo:2,unit:12, cue:'Start each block controlled and lift the final 2 min', build:function(R){return {min:R*12, text:R+' × [8 min building from low to high tempo (120–138 W) / 4 min easy]'};}},
+    {lo:3,unit:8,  cue:'Right at the top of tempo — controlled but purposeful', build:function(R){return {min:R*8, text:R+' × [5 min at strong tempo (130–138 W) / 3 min easy]'};}}
   ];
   var i=0;
   WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){
