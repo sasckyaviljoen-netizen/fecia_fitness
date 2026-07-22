@@ -273,13 +273,15 @@ const WEEKS=PLAN.map(buildWeek);
   // set → steady Z2 endurance (the aerobic bulk) → a short fixed cool-down. So a
   // long base ride is mostly endurance, and the cool-down is never longer than
   // the main set. Watt targets scale with FTP.
+  // Every template's main set is written in the bracketed N×[…] form the workout
+  // parser reads, so the note text and the rendered blocks are always the same set.
   var T=[
-    {lo:3,hi:6,unit:6, cue:'Hold the same watts on every rep at 85–95 rpm', build:function(R){return {min:R*6, text:R+' × [4 min at tempo (125–135 W) + 2 min easy spin]'};}},
-    {lo:3,hi:5,unit:8, cue:'The harder “over” stays controlled — never a sprint', build:function(R){return {min:R*5+(R-1)*3, text:R+' rounds, each: 3 min at tempo (125–135 W) then 2 min at sweet-spot (135–142 W) — 3 min easy between rounds'};}},
-    {lo:3,hi:5,unit:9, cue:'Only the cadence changes — the power stays the same', build:function(R){return {min:R*6+(R-1)*3, text:R+' rounds of 6 min at tempo (125–135 W), same watts throughout, changing cadence every 2 min — 2 min fast spin (95–100 rpm) / 2 min big-gear grind (60–65 rpm) / 2 min natural — 3 min easy between rounds'};}},
-    {lo:2,hi:4,unit:17, cue:'Long and even — settle in and hold your riding position', build:function(R){return {min:R*12+(R-1)*5, text:R+' × 12 min steady at tempo (125–135 W), 5 min easy between'};}},
-    {lo:2,hi:4,unit:12, cue:'Start each block controlled and lift the final 2 min', build:function(R){return {min:R*8+(R-1)*4, text:R+' × 8 min, building each block from low to high tempo (120–138 W), 4 min easy between'};}},
-    {lo:3,hi:5,unit:8, cue:'Right at the top of tempo — controlled but purposeful', build:function(R){return {min:R*8, text:R+' × [5 min at strong tempo (130–138 W) + 3 min easy]'};}}
+    {lo:3,hi:6,unit:6, cue:'Hold the same watts on every rep at 85–95 rpm', build:function(R){return {min:R*6, text:R+' × [4 min at tempo (125–135 W) / 2 min easy spin]'};}},
+    {lo:3,hi:5,unit:8, cue:'The harder “over” stays controlled — never a sprint', build:function(R){return {min:R*8, text:R+' × [3 min at tempo (125–135 W) + 2 min at sweet-spot (135–142 W) / 3 min easy]'};}},
+    {lo:3,hi:5,unit:9, cue:'Only the cadence changes — the power stays the same', build:function(R){return {min:R*9, text:R+' × [2 min at tempo, fast spin 95–100 rpm (125–135 W) + 2 min at tempo, big-gear 60–65 rpm (125–135 W) + 2 min at tempo, natural cadence (125–135 W) / 3 min easy]'};}},
+    {lo:2,hi:4,unit:17, cue:'Long and even — settle in and hold your riding position', build:function(R){return {min:R*17, text:R+' × [12 min steady at tempo (125–135 W) / 5 min easy]'};}},
+    {lo:2,hi:4,unit:12, cue:'Start each block controlled and lift the final 2 min', build:function(R){return {min:R*12, text:R+' × [8 min building from low to high tempo (120–138 W) / 4 min easy]'};}},
+    {lo:3,hi:5,unit:8, cue:'Right at the top of tempo — controlled but purposeful', build:function(R){return {min:R*8, text:R+' × [5 min at strong tempo (130–138 W) / 3 min easy]'};}}
   ];
   var i=0;
   WEEKS.forEach(function(w){w.days.forEach(function(day){day.s.forEach(function(s){
@@ -534,6 +536,20 @@ function _rxDist(parts,total){
   }
   return blocks;
 }
+// Fallback main set for a hard session whose note didn't parse — keeps the TYPE
+// correct (a tempo ride is never all easy) and sums to m.
+function _fallbackHard(title,disc,m){
+  var t=(title||'').toLowerCase(),bike=disc==='bike',wu=bike?12:10,cd=bike?8:6;
+  var z=/vo2|interval|sprint|speed/.test(t)?5:(/threshold|hill|test/.test(t)?4:3);
+  var work=z>=5?3:(z>=4?6:8),rec=z>=5?3:(z>=4?2:3),avail=m-wu-cd;
+  var R=_cl(Math.round((avail*0.6)/(work+rec)),2,8),mainMin=R*(work+rec),en=m-wu-cd-mainMin;
+  while(en<0&&R>2){R--;mainMin=R*(work+rec);en=m-wu-cd-mainMin;}
+  var lab=z>=5?'VO2 Max':(z>=4?'Threshold':'Tempo');
+  var blocks=[_blk('Warm Up',1,[_t(wu,2)]),_blk(lab,R,[_t(work,z),_t(rec,z>=4?1:2)])];
+  if(en>=3){blocks.push(_blk('Endurance',1,[_t(en,2)]));blocks.push(_blk('Cool Down',1,[_t(cd,2)]));}
+  else blocks.push(_blk('Cool Down',1,[_t(Math.max(4,cd+en),2)]));
+  return _rxFix(blocks,m);
+}
 function buildBlocks(s){
   var d=s.d;if(d!=='swim'&&d!=='bike'&&d!=='run')return null;
   if(/\bRACE\b/.test(s.t))return null;           // race DAY (all-caps) — not a structured workout; "Race Pace" is fine
@@ -542,7 +558,13 @@ function buildBlocks(s){
     var m=s.m||_titleMin(s.t);
     if(!m){var raw=0;parts.forEach(function(p){if(p.type==='repeat'){var st=_rxInner(p.inner,'time'),per=0;st.forEach(function(x){per+=_stepMin(x);});raw+=p.lo*per;}else if(p.dur!=null)raw+=p.dur;else if(p.secs!=null)raw+=p.secs/60;});m=Math.round(raw)||40;}
     if(!parts.length)return [_blk(d==='run'?'Easy Run':'Endurance Ride',1,[_t(m||40,2)])];
-    return _rxTime(parts,m,s.t,d);
+    var blocks=_rxTime(parts,m,s.t,d);
+    // Safety net: a hard-titled session must never render as easy-only (e.g. an
+    // unrecognised note format). Fall back to a sensible main set for the type.
+    var hard=/tempo|threshold|vo2|interval|race\s*pace|hill|test|over-under|sprint|\bspeed\b/i.test(s.t);
+    var maxZ=0;blocks.forEach(function(b){b.steps.forEach(function(st){if(st.zone>maxZ)maxZ=st.zone;});});
+    if(hard&&maxZ<3)blocks=_fallbackHard(s.t,d,m);
+    return blocks;
   }
   var km=(s.t.match(/([\d.]+)\s*km/)||[])[1],mm=(s.t.match(/(\d+)\s*m\b/)||[])[1];
   var dist=km?Math.round(parseFloat(km)*1000):(mm?+mm:1500);
