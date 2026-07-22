@@ -389,6 +389,21 @@ function _rxNote(txt){
   return m?m[1].replace(/~/g,'').trim():null;
 }
 function _rxRest(txt){var m=(''+txt).match(/\br\s*(\d+)/i);return m?+m[1]:null;}
+// The actual instruction for a step ("uphill at strong effort", "jog back down",
+// "kick", "sweet-spot", "building…") so the card says what to DO, not just a zone.
+function _rxDesc(text){
+  var s=(''+text)
+    .replace(/^\s*\d+\s*(min|sec|m)?\b/i,'')      // strip leading amount (min/sec/m or a bare swim metre count)
+    .replace(/\([^)]*\)/g,'')                     // strip (125–135 W) etc
+    .replace(/z\s*[1-5](\s*-\s*z?\s*[1-5])?/ig,'')// strip Z3 / Z2-Z3
+    .replace(/[~]/g,'').replace(/\s+/g,' ').trim();
+  s=s.split(/\s[-–—]\s|,|;|:/)[0]                 // keep the first phrase only, drop trailing prose
+    .replace(/^\s*(at the|at a|at|of|for|as)\s+/i,'')
+    .replace(/[—\-,;:.\s]+$/,'').trim();
+  if(!s)return null;
+  if(/^(easy|tempo|threshold|recovery|vo2\s*max|vo2|endurance|steady|aerobic|hard|max|all-?out|strong|strong tempo|steady tempo|steady race effort|race pace|race effort|conversational|relaxed|smooth|building)$/i.test(s))return null;
+  return s.length>46?s.slice(0,46).replace(/\s\S*$/,'')+'…':s;
+}
 function _cap(s){return (''+s).replace(/-/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});}
 function _stepMin(st){return st.dur!=null?st.dur:((st.secs||0)/60);}
 function _blkMin(b){var per=0;b.steps.forEach(function(st){per+=_stepMin(st);});return per*b.repeat;}
@@ -409,14 +424,14 @@ function _rxInner(inner,mode){
       sub=_unprotect(sub).trim();if(!sub)return;
       var head=_head(sub);
       var tm=sub.match(/^(\d+)\s*min\b/),ts=sub.match(/^(\d+)\s*sec\b/),dm=sub.match(/^(\d{2,4})\s*m?\b/);
-      var z=_rxZone(head),note=_rxNote(sub);
-      if(tm){var d=+tm[1];if(z===5&&d>=8)z=4;steps.push(_t(d,z,{note:note}));}
-      else if(ts){var sd=+ts[1];steps.push(_t2(sd,z,{note:note}));}
-      else if(mode==='dist'&&dm)steps.push(_d(+dm[1],z,{note:note,rest:_rxRest(sub)}));
+      var z=_rxZone(head),note=_rxNote(sub),desc=_rxDesc(head);
+      if(tm){var d=+tm[1];if(z===5&&d>=8)z=4;steps.push(_t(d,z,{note:note,desc:desc}));}
+      else if(ts){var sd=+ts[1];steps.push(_t2(sd,z,{note:note,desc:desc}));}
+      else if(mode==='dist'&&dm)steps.push(_d(+dm[1],z,{note:note,desc:desc,rest:_rxRest(sub)}));
       else if(mode==='time'){ // durationless recovery leg (e.g. "jog back down") -> mirror prior work
         var prev=steps.length?steps[steps.length-1]:null;
         var sec=prev?(prev.secs||(prev.dur||1)*60):60;
-        steps.push(_t2(Math.round(sec),_rxZone(head||'recovery')));
+        steps.push(_t2(Math.round(sec),_rxZone(head||'recovery'),{desc:_rxDesc(head)}));
       }
     });
   });
@@ -441,12 +456,12 @@ function _rxParts(x,mode){
       if(mode==='time'){
         // Number must LEAD the clause — rejects prose like "…once past ~75 min".
         var tm=c.match(/^(\d+)\s*min\b/),ts=c.match(/^(\d+)\s*sec\b/);
-        if(tm){var d=+tm[1],z=_rxZone(head);if(z===5&&d>=8)z=4;out.push({type:'step',dur:d,zone:z,note:_rxNote(head),label:lab,text:head});return;}
-        if(ts){out.push({type:'step',secs:+ts[1],zone:_rxZone(head),note:_rxNote(head),label:lab,text:head});return;}
+        if(tm){var d=+tm[1],z=_rxZone(head);if(z===5&&d>=8)z=4;out.push({type:'step',dur:d,zone:z,note:_rxNote(head),desc:_rxDesc(head),label:lab,text:head});return;}
+        if(ts){out.push({type:'step',secs:+ts[1],zone:_rxZone(head),note:_rxNote(head),desc:_rxDesc(head),label:lab,text:head});return;}
         if((lab&&/cool|cd|warm|wu/.test(lab))||/^cool-?down$|^warm-?up$/i.test(c))out.push({type:'fill',zone:2,label:lab||'cool-down'});
       }else{
         var dm=c.match(/^(\d{2,4})\s*m?\b/);
-        if(dm)out.push({type:'step',dist:+dm[1],zone:_rxZone(head),note:_rxNote(head),rest:_rxRest(c),label:lab||_rxSwimLab(head),text:head});
+        if(dm)out.push({type:'step',dist:+dm[1],zone:_rxZone(head),note:_rxNote(head),desc:_rxDesc(head),rest:_rxRest(c),label:lab||_rxSwimLab(head),text:head});
       }
     });
   });
@@ -486,7 +501,7 @@ function _rxTime(parts,m,title,disc){
 
   // ---- Progression: one ramping block ----
   if(/progression|get faster/i.test(title)){
-    var steps=[];for(var i=1;i<parts.length-1;i++){var p=parts[i];if(p.dur!=null)steps.push(_t(p.dur,p.zone,{note:p.note}));}
+    var steps=[];for(var i=1;i<parts.length-1;i++){var p=parts[i];if(p.dur!=null)steps.push(_t(p.dur,p.zone,{note:p.note,desc:p.desc}));}
     var wm=(parts[0]&&parts[0].dur)||10,sm=0;steps.forEach(function(s){sm+=s.dur;});
     var b=[_blk('Warm Up',1,[_t(wm,2)]),_blk('Progression',1,steps)],cdp=m-wm-sm;
     if(cdp>=3)b.push(_blk('Cool Down',1,[_t(cdp,1)]));
@@ -515,7 +530,7 @@ function _rxTime(parts,m,title,disc){
       else if(p.hi>p.lo)reps=_cl(Math.round((m-warmMin-cdWant)/per),p.lo,p.hi);
       work.push(_blk('Main Set',reps,st));workMin+=reps*per;
     }else if(isWork(p)){
-      var stp=p.secs!=null?_t2(p.secs,p.zone,{note:p.note}):_t(p.dur,p.zone,{note:p.note});
+      var stp=p.secs!=null?_t2(p.secs,p.zone,{note:p.note,desc:p.desc}):_t(p.dur,p.zone,{note:p.note,desc:p.desc});
       work.push(_blk(typeLab,1,[stp]));workMin+=_stepMin(stp);
     }else{var d=tm(p);work.push(_blk(p.zone<=1?'Recovery':'Endurance',1,[_t(Math.round(d),p.zone)]));workMin+=d;}
   }
@@ -539,7 +554,7 @@ function _rxDist(parts,total){
     else if(p.type==='step'){
       var lab=p.label?(LM[p.label]||_cap(p.label)):(i===0?'Warm Up':'Main Set');
       if(i===parts.length-1&&p.zone<=2&&/easy|cool/i.test(p.text||''))lab='Cool Down';
-      blocks.push(_blk(lab,1,[_d(p.dist,p.zone,{rest:p.rest,note:p.note})]));
+      blocks.push(_blk(lab,1,[_d(p.dist,p.zone,{rest:p.rest,note:p.note,desc:p.desc})]));
     }
   });
   if(total){
@@ -606,7 +621,10 @@ function renderBlocks(blocks){
       var amt=st.dur!=null?(st.dur+' min'):(st.secs!=null?(st.secs+' sec'):(st.dist+' m'));
       var note=st.note?' <span class="wnote">('+esc(st.note)+')</span>':'';
       var gear=(st.gear&&st.gear.length)?'<div class="wgear">'+st.gear.map(function(g){return '<span class="gchip">'+esc(g)+'</span>';}).join('')+'</div>':'';
-      out+='<div class="wstep"><span class="wn">'+n+'.</span><div class="wsb"><div class="wsl"><b>'+amt+'</b> at a <b>'+z.name+'</b> pace'+note+'</div><div class="wrpe">'+esc(z.rpe)+'</div>'+gear+'<div class="wz"><span class="wzbar" style="background:'+z.col+'"></span><span class="wzl" style="color:'+z.col+'">Zone '+st.zone+'</span></div></div></div>';
+      // Lead with what to DO ("uphill", "kick", "sweet-spot") when the note says so;
+      // otherwise fall back to the zone-pace phrasing.
+      var lead=st.desc?('<b>'+amt+'</b> '+esc(st.desc)):('<b>'+amt+'</b> at a <b>'+z.name+'</b> pace');
+      out+='<div class="wstep"><span class="wn">'+n+'.</span><div class="wsb"><div class="wsl">'+lead+note+'</div><div class="wrpe">'+esc(z.rpe)+'</div>'+gear+'<div class="wz"><span class="wzbar" style="background:'+z.col+'"></span><span class="wzl" style="color:'+z.col+'">Zone '+st.zone+'</span></div></div></div>';
       if(st.rest)out+='<div class="wrest">Rest '+st.rest+' sec</div>';
       if(idx<b.steps.length-1)out+='<div class="wsep"></div>';
     });
