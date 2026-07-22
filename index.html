@@ -288,17 +288,13 @@ const WEEKS=PLAN.map(buildWeek);
     if(s.d==='bike'&&/tempo/i.test(s.t)){
       var t=T[i%T.length];i++;
       var m=s.m||estMin(s);
-      var WU=12,CD=8;
-      var avail=m-WU-CD;
-      var R=Math.round((avail*0.5)/t.unit);R=Math.max(t.lo,Math.min(t.hi,R));
-      var main=t.build(R),mainMin=main.min,en=m-WU-CD-mainMin;
-      while(en<0&&R>t.lo){R--;main=t.build(R);mainMin=main.min;en=m-WU-CD-mainMin;}
-      var wu=WU,cd=CD;
-      if(en>0&&en<6){cd+=en;en=0;}            // tiny remainder → into the cool-down
-      if(en<0){cd=Math.max(5,m-wu-mainMin);en=0;}
-      var str='<b>Warm-up</b> — '+wu+' min easy, gradually building';
+      var WU=12,CDt=6;
+      // Fill the ride with the tempo work itself — the tempo set IS the session,
+      // no long "steady endurance" block tacked on before the cool-down.
+      var R=Math.max(t.lo,Math.min(12,Math.floor((m-WU-CDt)/t.unit)));
+      var main=t.build(R),mainMin=main.min,cd=Math.max(5,m-WU-mainMin);
+      var str='<b>Warm-up</b> — '+WU+' min easy, gradually building';
       str+='<br><b>Main set</b> ('+mainMin+' min) — '+main.text;
-      if(en>=6)str+='<br><b>Steady endurance</b> — '+en+' min at easy Z2 (aerobic base: 85–95 rpm, eat &amp; drink)';
       str+='<br><b>Cool-down</b> — '+cd+' min easy spin';
       str+='<br>'+t.cue;
       var fuel='';var p=s.x?s.x.indexOf(' · '):-1;
@@ -467,45 +463,67 @@ function _rxFix(blocks,m){
 }
 // Assemble a time-based (bike/run) session from parsed parts, summing to m.
 function _rxTime(parts,m,title,disc){
+  var bike=disc==='bike';
   var isWork=function(p){return p.type==='repeat'||(p.zone>=3&&(p.dur!=null||p.secs!=null));};
-  if(!parts.some(isWork)){ // pure aerobic -> ONE steady block (no redundant warm/cool split)
-    var allRec=parts.length&&parts.every(function(p){return (p.zone||2)===1;});
-    var lab=/easy|brick/i.test(title)?(disc==='run'?'Easy Run':'Easy Ride'):(disc==='run'?'Endurance Run':'Endurance Ride');
-    return [_blk(lab,1,[_t(m,allRec?1:2)])];
+  var tm=function(p){return p.dur!=null?p.dur:((p.secs||0)/60);};
+
+  // ---- Pure aerobic: Warm Up (Z1) / Steady|Endurance (Z2) / Cool Down (Z1) ----
+  // A real warm-up → main → cool-down, with distinct zones — never one flat block,
+  // never two identical Zone-2 blocks side by side.
+  if(!parts.some(isWork)){
+    var td=parts.filter(function(p){return p.dur!=null||p.secs!=null;}).map(tm),warm,cool;
+    if(td.length>=3){warm=td[0];cool=td[td.length-1];}
+    else if(td.length===2){warm=td[0];cool=Math.min(Math.round(td[1]*0.25),bike?10:8);}
+    else {warm=_cl(Math.round(m*0.12),4,bike?12:10);cool=_cl(Math.round(m*0.1),4,8);}
+    warm=_cl(Math.round(warm),3,20);cool=_cl(Math.round(cool),3,12);
+    var body=m-warm-cool;
+    if(body<5){warm=Math.max(3,Math.round((m-5)*0.5));cool=Math.max(3,m-5-warm);body=m-warm-cool;}
+    return _rxFix([_blk('Warm Up',1,[_t(warm,1)]),_blk(bike?'Endurance':'Steady',1,[_t(body,2)]),_blk('Cool Down',1,[_t(cool,1)])],m);
   }
-  if(/progression|get faster/i.test(title)){ // one Progression block of the ramping steps
+
+  // ---- Progression: one ramping block ----
+  if(/progression|get faster/i.test(title)){
     var steps=[];for(var i=1;i<parts.length-1;i++){var p=parts[i];if(p.dur!=null)steps.push(_t(p.dur,p.zone,{note:p.note}));}
     var wm=(parts[0]&&parts[0].dur)||10,sm=0;steps.forEach(function(s){sm+=s.dur;});
-    var b=[_blk('Warm Up',1,[_t(wm,2)]),_blk('Progression',1,steps)],cd=m-wm-sm;
-    if(cd>=3)b.push(_blk('Cool Down',1,[_t(cd,2)]));
+    var b=[_blk('Warm Up',1,[_t(wm,2)]),_blk('Progression',1,steps)],cdp=m-wm-sm;
+    if(cdp>=3)b.push(_blk('Cool Down',1,[_t(cdp,1)]));
     return _rxFix(b,m);
   }
+
   var firstW=-1,lastW=-1;parts.forEach(function(p,i){if(isWork(p)){if(firstW<0)firstW=i;lastW=i;}});
-  var warmMin=0;for(var i=0;i<firstW;i++)warmMin+=_stepMin(parts[i].dur!=null?{dur:parts[i].dur}:{secs:parts[i].secs||0});
-  if(warmMin<1)warmMin=disc==='bike'?12:10;
-  var work=[],workMin=0;
+  var warmMin=0;for(var i=0;i<firstW;i++)warmMin+=tm(parts[i]);
+  if(warmMin<1)warmMin=bike?12:10;
+  var cdWant=bike?8:6;
+  for(var i=parts.length-1;i>lastW;i--)if(parts[i].dur!=null){cdWant=parts[i].dur;break;}
+  cdWant=_cl(Math.round(cdWant),4,10);
+
   var typeLab=/test/i.test(title)?'Test':(/race/i.test(title)?'Race Pace':(/threshold/i.test(title)?'Threshold':(/tempo/i.test(title)?'Tempo':(/hill/i.test(title)?'Hill Reps':(/vo2/i.test(title)?'VO2 Max':'Main Set')))));
+  var maxRep=/vo2/i.test(title)?9:(/interval|hill|sprint/i.test(title)?14:12);
+  var repeatN=0;for(var i=firstW;i<=lastW;i++)if(parts[i].type==='repeat')repeatN++;
+  var work=[],workMin=0;
   for(var i=firstW;i<=lastW;i++){
     var p=parts[i];
     if(p.type==='repeat'){
       var st=_rxInner(p.inner,'time'),per=0;st.forEach(function(s){per+=_stepMin(s);});
       var reps=p.lo;
-      if(p.hi>p.lo){var budget=m-warmMin-(disc==='bike'?10:8);reps=_cl(Math.round(budget/per),p.lo,p.hi);}
+      // Sole interval block → stretch it to FILL the session (the work IS the session,
+      // no endurance filler tacked on). Compound sets keep their written rep count.
+      if(repeatN===1)reps=_cl(Math.floor((m-warmMin-cdWant)/per),p.lo,maxRep);
+      else if(p.hi>p.lo)reps=_cl(Math.round((m-warmMin-cdWant)/per),p.lo,p.hi);
       work.push(_blk('Main Set',reps,st));workMin+=reps*per;
     }else if(isWork(p)){
       var stp=p.secs!=null?_t2(p.secs,p.zone,{note:p.note}):_t(p.dur,p.zone,{note:p.note});
       work.push(_blk(typeLab,1,[stp]));workMin+=_stepMin(stp);
-    }else{var d=_stepMin(p.dur!=null?{dur:p.dur}:{secs:p.secs||0});work.push(_blk(p.zone<=1?'Recovery':'Endurance',1,[_t(Math.round(d),p.zone)]));workMin+=d;}
+    }else{var d=tm(p);work.push(_blk(p.zone<=1?'Recovery':'Endurance',1,[_t(Math.round(d),p.zone)]));workMin+=d;}
   }
-  var cdWant=disc==='bike'?8:6;
-  for(var i=parts.length-1;i>lastW;i--)if(parts[i].dur!=null){cdWant=parts[i].dur;break;}
-  cdWant=_cl(cdWant,4,12);
   var blocks=[_blk('Warm Up',1,[_t(Math.round(warmMin),2)])].concat(work);
-  var tail=m-warmMin-workMin;
+  var tail=Math.round(m-warmMin-workMin);
   if(tail>0){
-    var endur=Math.round(tail-cdWant);
-    if(endur>=3){blocks.push(_blk('Endurance',1,[_t(endur,2)]));blocks.push(_blk('Cool Down',1,[_t(Math.round(cdWant),2)]));}
-    else blocks.push(_blk('Cool Down',1,[_t(Math.round(tail),2)]));
+    // A modest leftover just tops up the warm-up + a short Z1 wind-down — no filler block.
+    // Only a genuinely short-set ride (VO2 / 1-min intervals) leaves too much to absorb;
+    // then a Z2 endurance block is the honest way to make the aerobic ride add up.
+    if(tail>=16){blocks.push(_blk('Endurance',1,[_t(tail-cdWant,2)]));blocks.push(_blk('Cool Down',1,[_t(cdWant,1)]));}
+    else {var cool=Math.min(tail,12),extra=tail-cool;if(extra>0)blocks[0].steps[0].dur+=extra;blocks.push(_blk('Cool Down',1,[_t(cool,1)]));}
   }
   return _rxFix(blocks,m);
 }
