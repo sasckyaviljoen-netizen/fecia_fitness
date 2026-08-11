@@ -195,6 +195,12 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
         <div id="ivStatus" style="margin-bottom:12px;color:var(--text);font-weight:600">Checking…</div>
         <button id="ivCheck" style="background:var(--text);color:var(--bg);border:none;border-radius:11px;padding:12px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;width:100%">Check intervals.icu now</button>
         <div class="sethint">Ticks off any planned session you completed on intervals.icu — matched by same day + sport. Auto-runs when the app opens and syncs. If a match is wrong, just un-tick it; it won't come back.</div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+        <div style="font-weight:700;margin-bottom:6px">Send runs to intervals.icu → Garmin</div>
+        <div id="ivPushStatus" style="margin-bottom:10px;color:var(--muted);font-size:13px">Pushes your upcoming run workouts onto your intervals.icu calendar. If intervals.icu is linked to Garmin Connect, they'll appear on your watch.</div>
+        <button id="ivPush" style="background:var(--primary);color:#fff;border:none;border-radius:11px;padding:12px 14px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;width:100%">Push upcoming runs to intervals.icu</button>
+        <button id="ivClear" style="background:transparent;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;width:100%;margin-top:8px">Remove runs this app added</button>
+        <div class="sethint">Re-pushing replaces what this app sent before (no duplicates). It only removes workouts it created — anything you or an older setup put on intervals.icu is left alone; clear those in intervals.icu directly.</div>
       </div></details>
       <details class="panel"><summary>How this maps to your apps</summary><div class="pc">
         Runs → build in intervals.icu, auto-syncs to your watch. Swims → pick Pool Swim and follow the set here. Indoor bike → Wattbike Hub (free) or MyWhoosh; easy/long rides are just "ride at Z2", only the interval days need a structured workout.
@@ -202,7 +208,7 @@ body{font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(-
       <button class="reset" id="resetMoves">↺ Reset day arrangement</button>
       <button class="reset" id="reset">Reset all progress</button>
     </section>
-    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v33</span></footer>
+    <footer class="foot">Tap a card for the workout, log &amp; how-it-felt · tap the circle to tick it off.<br>Everything saves automatically.<br><span style="opacity:.55">build r703-v34</span></footer>
   </div>
 </div>
 
@@ -911,7 +917,54 @@ window.__rehydrate=function(){hydrate(false);};
   const sf=$('setFtp'),sr=$('setRun'),ss=$('setSwim');
   const sb=$('saveSet');if(sb)sb.onclick=()=>{const f=parseInt(sf.value,10);if(f>50&&f<600)settings.ftp=f;if(/^\d{1,2}:\d{2}$/.test((sr.value||'').trim()))settings.run=sr.value.trim();if(/^\d{1,2}:\d{2}$/.test((ss.value||'').trim()))settings.swim=ss.value.trim();saveSettings();renderZones();renderAll();showToast('Targets updated');};
   $('reset').onclick=()=>{if(confirm('Clear all your ticked-off sessions? This cannot be undone.')){progress={};ivdone={};actuals={};others={};save();saveIvdone();saveActuals();saveOthers();renderAll();}};var rm=$('resetMoves');if(rm)rm.onclick=()=>{if(confirm('Put every session back on its original day?')){moves={};saveMoves();renderAll();}};
+  var pb=$('ivPush');if(pb)pb.onclick=ivPushRuns;
+  var cb=$('ivClear');if(cb)cb.onclick=ivClearRuns;
 })();
+// ---- Push planned runs to intervals.icu (→ Garmin via the user's existing link) ----
+// Turn a session's structured blocks into intervals.icu's workout text format.
+function blocksToDesc(blocks){
+  return (blocks||[]).map(function(b){
+    var head=b.label+(b.repeat>1?' '+b.repeat+'x':'');
+    var lines=(b.steps||[]).map(function(st){
+      var d=st.dur!=null?(st.dur+'m'):(st.secs!=null?(st.secs+'s'):null);
+      if(!d)return null;
+      var nm=st.desc?(' '+String(st.desc).replace(/\s+/g,' ')):'';
+      return '- '+d+' Z'+(st.zone||2)+nm;
+    }).filter(Boolean);
+    return head+'\n'+lines.join('\n');
+  }).join('\n\n');
+}
+async function ivPushRuns(){
+  var st=$('ivPushStatus');
+  var cloud=window.__cloud;if(!cloud){st.textContent='Cloud not ready — try again in a moment.';return;}
+  var sb=cloud.client(),user=cloud.user();
+  if(!sb||!user){st.textContent='Sign in first (top of the app) to push to intervals.icu.';return;}
+  var T=todayISO(),workouts=[];
+  WEEKS.forEach(function(w){w.days.forEach(function(day){if(day.iso<T)return;day.s.forEach(function(s){
+    if(s.d!=='run'||!s.blocks||!s.blocks.length)return;
+    workouts.push({date:day.iso,type:'Run',name:s.t.replace(/^[^\w\d]+/,'').trim(),description:blocksToDesc(s.blocks),external_id:'r703-'+s._id});
+  });});});
+  if(!workouts.length){st.textContent='No upcoming runs found to push.';return;}
+  st.textContent='Pushing '+workouts.length+' runs…';
+  try{
+    var res=await sb.functions.invoke('intervals-sync',{body:{action:'push',workouts:workouts}});
+    if(res.error){var extra='';try{var ctx=res.error.context;if(ctx&&typeof ctx.status!=='undefined')extra=' (HTTP '+ctx.status+')';if(ctx&&ctx.clone){var bt=await ctx.clone().text();if(bt)extra+=' — '+bt.slice(0,140);}}catch(_){}
+      st.textContent='Push failed'+extra+'. If it says method/action not handled, redeploy the intervals-sync function with the latest code.';return;}
+    var d=res.data||{};
+    if(d.error){st.textContent='intervals.icu: '+d.error+(d.detail?' — '+d.detail:'');return;}
+    st.textContent='✓ Pushed '+(d.pushed||workouts.length)+' runs to intervals.icu. They’ll show on Garmin if your intervals.icu → Garmin link is on.';
+  }catch(e){st.textContent='Push failed — see console.';console.warn('push',e);}
+}
+async function ivClearRuns(){
+  var st=$('ivPushStatus');var cloud=window.__cloud;if(!cloud)return;var sb=cloud.client(),user=cloud.user();
+  if(!sb||!user){st.textContent='Sign in first.';return;}
+  if(!confirm('Remove the workouts this app added to intervals.icu? (Only ones it created — yours are left alone.)'))return;
+  st.textContent='Removing…';
+  try{var res=await sb.functions.invoke('intervals-sync',{body:{action:'clear'}});
+    if(res.error){st.textContent='Remove failed — redeploy the intervals-sync function with the latest code.';return;}
+    var d=res.data||{};st.textContent='Removed '+(d.deleted||0)+' workouts this app had added.';
+  }catch(e){st.textContent='Remove failed — see console.';console.warn('clear',e);}
+}
 </script>
 
 <!-- intervals.icu auto-detect: loads after the app so window.__applyIntervalsActivities exists. -->

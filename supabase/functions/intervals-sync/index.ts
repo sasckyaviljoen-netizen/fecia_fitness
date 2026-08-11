@@ -58,24 +58,71 @@ Deno.serve(async (req: Request) => {
     return json({ error: "intervals.icu not configured (missing secrets)" }, 500);
   }
 
-  // --- date window (default: last 120 days) ---
-  let oldest = "", newest = "";
-  try {
-    const b = await req.json();
-    oldest = b?.oldest || "";
-    newest = b?.newest || "";
-  } catch (_) { /* no body -> defaults */ }
+  const basic = "Basic " + btoa("API_KEY:" + key);
+  const base = `https://intervals.icu/api/v1/athlete/${athlete}`;
+  const MARK = "r703-"; // external_id prefix — how we recognise workouts this app created
+
+  // --- read the body once ---
+  let b: any = {};
+  try { b = await req.json(); } catch (_) { /* no body -> defaults */ }
+  const action = b?.action || "read";
+
+  // ===== PUSH: create/replace planned workouts on the intervals.icu calendar =====
+  // These sync to Garmin via the athlete's existing intervals.icu → Garmin link.
+  // external_id + upsert makes re-pushing idempotent (updates, never duplicates).
+  if (action === "push") {
+    const workouts = Array.isArray(b.workouts) ? b.workouts : [];
+    if (!workouts.length) return json({ error: "no workouts to push" }, 400);
+    const events = workouts.map((w: any) => ({
+      category: "WORKOUT",
+      start_date_local: (w.date || "").slice(0, 10) + "T00:00:00",
+      type: w.type || "Run",
+      name: w.name || "Workout",
+      description: w.description || "",
+      external_id: String(w.external_id || (MARK + Math.random())),
+    }));
+    let r: Response;
+    try {
+      r = await fetch(`${base}/events/bulk?upsert=true`, {
+        method: "POST",
+        headers: { Authorization: basic, "Content-Type": "application/json" },
+        body: JSON.stringify(events),
+      });
+    } catch (e) { return json({ error: "intervals.icu unreachable", detail: String(e) }, 502); }
+    const txt = await r.text().catch(() => "");
+    if (!r.ok) return json({ error: `intervals.icu ${r.status}`, detail: txt.slice(0, 400) }, 502);
+    return json({ pushed: events.length });
+  }
+
+  // ===== CLEAR: delete only the workouts this app created (external_id starts r703-) =====
+  if (action === "clear") {
+    const now0 = new Date();
+    const oldest0 = b.oldest || ymd(now0);
+    const newest0 = b.newest || ymd(new Date(now0.getTime() + 220 * 86400000));
+    let list: any[] = [];
+    try {
+      const lr = await fetch(`${base}/events?oldest=${oldest0}&newest=${newest0}&category=WORKOUT`, { headers: { Authorization: basic } });
+      list = await lr.json().catch(() => []);
+    } catch (e) { return json({ error: "intervals.icu unreachable", detail: String(e) }, 502); }
+    const mine = (Array.isArray(list) ? list : []).filter((e: any) => String(e.external_id || "").startsWith(MARK));
+    let deleted = 0;
+    for (const e of mine) {
+      try {
+        const dr = await fetch(`${base}/events/${e.id}`, { method: "DELETE", headers: { Authorization: basic } });
+        if (dr.ok) deleted++;
+      } catch (_) { /* skip */ }
+    }
+    return json({ deleted });
+  }
+
+  // ===== READ (default): fetch recent activities to auto-tick completed sessions =====
+  let oldest = b?.oldest || "", newest = b?.newest || "";
   const now = new Date();
   if (!newest) newest = ymd(now);
   if (!oldest) oldest = ymd(new Date(now.getTime() - 120 * 86400000));
-
-  // --- fetch activities from intervals.icu (Basic auth: user "API_KEY") ---
-  const url =
-    `https://intervals.icu/api/v1/athlete/${athlete}/activities?oldest=${oldest}&newest=${newest}`;
-  const basic = "Basic " + btoa("API_KEY:" + key);
   let resp: Response;
   try {
-    resp = await fetch(url, { headers: { Authorization: basic } });
+    resp = await fetch(`${base}/activities?oldest=${oldest}&newest=${newest}`, { headers: { Authorization: basic } });
   } catch (e) {
     return json({ error: "intervals.icu unreachable", detail: String(e) }, 502);
   }
@@ -83,7 +130,6 @@ Deno.serve(async (req: Request) => {
     const text = await resp.text().catch(() => "");
     return json({ error: `intervals.icu ${resp.status}`, detail: text.slice(0, 300) }, 502);
   }
-
   const acts = await resp.json().catch(() => []);
   const activities = (Array.isArray(acts) ? acts : []).map((a: any) => ({
     date: (a.start_date_local || a.start_date || "").slice(0, 10),
