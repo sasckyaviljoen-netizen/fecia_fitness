@@ -94,25 +94,29 @@ Deno.serve(async (req: Request) => {
     return json({ pushed: events.length });
   }
 
-  // ===== CLEAR: delete only the workouts this app created (external_id starts r703-) =====
+  // ===== CLEAR: delete planned WORKOUT events in a future window =====
+  // scope "all" removes every planned workout (old ones too, for a clean slate);
+  // otherwise only the ones this app created (external_id starts r703-).
   if (action === "clear") {
     const now0 = new Date();
     const oldest0 = b.oldest || ymd(now0);
-    const newest0 = b.newest || ymd(new Date(now0.getTime() + 220 * 86400000));
+    const newest0 = b.newest || ymd(new Date(now0.getTime() + 300 * 86400000));
+    const onlyMine = b.scope !== "all";
     let list: any[] = [];
     try {
       const lr = await fetch(`${base}/events?oldest=${oldest0}&newest=${newest0}&category=WORKOUT`, { headers: { Authorization: basic } });
       list = await lr.json().catch(() => []);
     } catch (e) { return json({ error: "intervals.icu unreachable", detail: String(e) }, 502); }
-    const mine = (Array.isArray(list) ? list : []).filter((e: any) => String(e.external_id || "").startsWith(MARK));
+    const targets = (Array.isArray(list) ? list : [])
+      .filter((e: any) => onlyMine ? String(e.external_id || "").startsWith(MARK) : true);
     let deleted = 0;
-    for (const e of mine) {
+    for (const e of targets) {
       try {
         const dr = await fetch(`${base}/events/${e.id}`, { method: "DELETE", headers: { Authorization: basic } });
         if (dr.ok) deleted++;
       } catch (_) { /* skip */ }
     }
-    return json({ deleted });
+    return json({ deleted, scanned: targets.length });
   }
 
   // ===== READ (default): fetch recent activities to auto-tick completed sessions =====
