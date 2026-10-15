@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Wedding celebration at Chocolat Bistro, Durbanville, Cape Town.">
+<title>Anna &amp; Ben's Wedding</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Jost:wght@300;400;500&family=Parisienne&display=swap">
+<style>
+/* Layout: a French chocolaterie-bistro — awning stripes, a brass birdcage hero, the day set out like a menu card. */
+:root {
+  --bg: #f6ece3;        /* crème pâtissière */
+  --surface: #fbf5ef;
+  --ink: #3a2318;       /* dark cocoa */
+  --muted: #7b5e50;
+  --line: #dcc8b8;
+  --accent: #9e2f47;    /* framboise */
+  --brass: #9c7234;
+  --awning-a: #3a2318;
+  --awning-b: #f6ece3;
+  --on-accent: #fbf5ef;
+  --font-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --font-script: "Parisienne", "Snell Roundhand", "Brush Script MT", cursive;
+  --font-body: "Jost", "Futura", "Century Gothic", "Helvetica Neue", Arial, sans-serif;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.75rem;
+  --step-3: clamp(2rem, 5vw, 2.75rem);
+  --step-4: clamp(3.25rem, 11vw, 6.5rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #22150e; --surface: #2d1d14; --ink: #f1e3d3; --muted: #c2a796; --line: #4a3326;
+    --accent: #e57f94; --brass: #d4ac67; --awning-a: #3a2519; --awning-b: #22150e; --on-accent: #22150e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #22150e; --surface: #2d1d14; --ink: #f1e3d3; --muted: #c2a796; --line: #4a3326;
+  --accent: #e57f94; --brass: #d4ac67; --awning-a: #3a2519; --awning-b: #22150e; --on-accent: #22150e;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px;
+}
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; line-height: 1.1; }
+p { margin: 0; }
+
+.wrap {
+  max-width: 68rem; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.eyebrow {
+  font-family: var(--font-body); font-weight: 500; font-size: 0.75rem;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--brass);
+}
+
+/* Awning — the bistro's striped canopy */
+.awning {
+  height: 46px;
+  background: repeating-linear-gradient(90deg, var(--awning-a) 0 34px, var(--awning-b) 34px 68px);
+  position: relative;
+}
+.awning::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -14px; height: 14px;
+  background:
+    radial-gradient(circle at 17px 0, var(--awning-a) 16px, transparent 17px) 0 0 / 68px 14px repeat-x,
+    radial-gradient(circle at 51px 0, var(--awning-b) 16px, transparent 17px) 0 0 / 68px 14px repeat-x;
+}
+.awning.flip { transform: scaleY(-1); }
+
+/* Nav */
+nav.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+nav.top .wrap { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; padding-block: 0.7rem; }
+nav.top a {
+  color: var(--ink); text-decoration: none; font-size: 0.78rem; font-weight: 500;
+  letter-spacing: 0.2em; text-transform: uppercase;
+}
+nav.top a:hover { color: var(--accent); }
+
+/* Hero */
+.hero { text-align: center; }
+.hero .wrap { padding-block: 3.5rem 4rem; display: grid; gap: 1.4rem; justify-items: center; }
+.cage { width: min(190px, 46vw); height: auto; color: var(--brass); }
+.cage .bird { fill: var(--accent); }
+.hero .invite { font-family: var(--font-display); font-style: italic; font-size: var(--step-1); color: var(--muted); }
+.names {
+  font-family: var(--font-script); font-weight: 400; font-size: var(--step-4);
+  line-height: 1; color: var(--ink); margin: 0.2rem 0;
+}
+.names .amp { color: var(--accent); font-size: 0.7em; padding: 0 0.15em; }
+.date-line {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center;
+  font-family: var(--font-display); font-size: var(--step-1); letter-spacing: 0.04em;
+}
+.date-line .dot { width: 6px; height: 6px; transform: rotate(45deg); background: var(--brass); }
+.place { color: var(--muted); font-size: 0.95rem; letter-spacing: 0.08em; }
+
+.countdown {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 4.75rem)); gap: 0.6rem; margin-top: 0.8rem;
+}
+.countdown div {
+  border: 1px solid var(--brass); padding: 0.6rem 0.2rem 0.5rem; display: grid; gap: 0.1rem;
+}
+.countdown b { font-family: var(--font-display); font-weight: 400; font-size: var(--step-2); font-variant-numeric: tabular-nums lining-nums; line-height: 1; }
+.countdown span { font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+
+.btn {
+  display: inline-block; font: 500 0.8rem/1 var(--font-body); letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 1rem 1.8rem; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent);
+  text-decoration: none; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; color: var(--accent); }
+
+/* Sections */
+section.block .wrap { padding-block: 5rem; }
+.head { display: grid; gap: 0.6rem; justify-items: center; text-align: center; margin-bottom: 2.75rem; }
+.head h2 { font-size: var(--step-3); }
+.head h2 em { color: var(--accent); }
+.flourish { width: 120px; height: 14px; color: var(--brass); }
+.lede { max-width: 38rem; margin: 0 auto; text-align: center; font-size: 1.1rem; color: var(--muted); }
+.lede + .lede { margin-top: 1rem; }
+
+/* Menu card programme */
+.menu {
+  max-width: 40rem; margin: 0 auto; background: var(--surface);
+  border: 1px solid var(--line); outline: 1px solid var(--line); outline-offset: -10px;
+  padding: clamp(1.75rem, 5vw, 3.25rem) clamp(1.25rem, 5vw, 3.5rem);
+}
+.menu-title { text-align: center; font-family: var(--font-script); font-size: 2.6rem; color: var(--accent); line-height: 1; margin-bottom: 1.75rem; }
+.course { display: grid; gap: 0.15rem; padding-block: 1rem; border-top: 1px dashed var(--line); }
+.course:first-of-type { border-top: 0; }
+.course .row { display: flex; align-items: baseline; gap: 0.6rem; }
+.course h3 { font-size: var(--step-1); min-width: 0; }
+.course .leader { flex: 1; border-bottom: 1px dotted var(--muted); transform: translateY(-0.3em); min-width: 1.5rem; }
+.course time { font-family: var(--font-display); font-size: var(--step-1); font-variant-numeric: tabular-nums lining-nums; color: var(--brass); white-space: nowrap; }
+.course p { color: var(--muted); font-size: 0.95rem; }
+.course .fr { font-family: var(--font-display); font-style: italic; color: var(--accent); font-size: 0.95rem; }
+
+/* Venue */
+.venue { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+.venue-art {
+  aspect-ratio: 4 / 5; max-width: 100%;
+  background: var(--awning-a); color: var(--brass);
+  display: grid; place-items: center; position: relative; overflow: hidden;
+}
+.venue-art::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 22%;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 28px, var(--surface) 28px 56px);
+  opacity: 0.9;
+}
+.venue-art .sign {
+  position: relative; text-align: center; display: grid; gap: 0.4rem; padding: 1rem; color: #f1e3d3;
+}
+.venue-art .sign .script { font-family: var(--font-script); font-size: clamp(3rem, 8vw, 4.5rem); line-height: 1; color: #f1e3d3; }
+.venue-art .sign .small { font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; color: #d4ac67; }
+.venue-copy { display: grid; gap: 1.25rem; min-width: 0; }
+.venue-copy h3 { font-size: var(--step-2); }
+.facts { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.facts li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--line); }
+.facts dt, .facts .k { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); padding-top: 0.25rem; }
+.actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+/* Good to know */
+.notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem 2rem; }
+.note { display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
+.note h3 { font-size: var(--step-1); }
+.note .fr { font-family: var(--font-display); font-style: italic; color: var(--accent); }
+.note p { color: var(--muted); }
+
+/* RSVP */
+.rsvp-band { background: var(--surface); border-block: 1px solid var(--line); }
+form.rsvp { max-width: 36rem; margin: 0 auto; display: grid; gap: 1.25rem; }
+.field { display: grid; gap: 0.4rem; }
+.field label, .field legend { font-size: 0.72rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--brass); }
+.field input, .field select, .field textarea {
+  font: 300 1rem/1.4 var(--font-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 0; padding: 0.8rem 0.9rem; width: 100%;
+}
+.field textarea { min-height: 5.5rem; resize: vertical; }
+fieldset.field { border: 0; padding: 0; margin: 0; }
+.choice { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.choice label {
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-align: center;
+  border: 1px solid var(--line); padding: 0.9rem 0.5rem; cursor: pointer;
+  font: 400 1.05rem/1.2 var(--font-display); font-style: italic; letter-spacing: 0; text-transform: none; color: var(--ink);
+}
+.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice input:checked + label { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.choice input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 3px; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+.hint { font-size: 0.85rem; color: var(--muted); text-align: center; }
+.error { color: var(--accent); font-size: 0.9rem; }
+.result { border: 1px solid var(--brass); padding: 1.5rem; display: grid; gap: 1rem; text-align: center; }
+.result h3 { font-size: var(--step-2); }
+.result pre {
+  text-align: left; white-space: pre-wrap; word-break: break-word; margin: 0;
+  font: 300 0.9rem/1.5 var(--font-body); background: var(--bg); border: 1px solid var(--line); padding: 1rem;
+}
+.result .actions { justify-content: center; }
+
+footer { text-align: center; }
+footer .wrap { padding-block: 3.5rem 3rem; display: grid; gap: 0.6rem; justify-items: center; }
+footer .names { font-size: 3rem; }
+footer p { color: var(--muted); font-size: 0.9rem; }
+
+@keyframes swing { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+.cage { transform-origin: 50% 0; animation: swing 6s ease-in-out infinite; }
+
+@media (max-width: 760px) {
+  .venue { grid-template-columns: minmax(0, 1fr); }
+  .venue-art { aspect-ratio: 16 / 10; }
+  .notes { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  section.block .wrap { padding-block: 3.75rem; }
+  nav.top .wrap { gap: 0.9rem 1.1rem; }
+  nav.top a { font-size: 0.7rem; letter-spacing: 0.14em; }
+}
+@media (max-width: 420px) {
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .facts li { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
+  .countdown { gap: 0.4rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="awning" aria-hidden="true"></div>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <svg class="cage" viewBox="0 0 200 250" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+      <circle cx="100" cy="14" r="10"/>
+      <path d="M100 24 V40"/>
+      <path d="M30 120 C30 60 170 60 170 120"/>
+      <path d="M100 40 C78 48 40 70 30 120 M100 40 C122 48 160 70 170 120"/>
+      <path d="M100 40 V212 M65 66 C58 90 56 110 56 212 M135 66 C142 90 144 110 144 212 M45 86 C40 100 40 112 40 212 M155 86 C160 100 160 112 160 212 M82 50 C78 80 78 110 78 212 M118 50 C122 80 122 110 122 212"/>
+      <path d="M30 120 V212 M170 120 V212"/>
+      <ellipse cx="100" cy="120" rx="70" ry="7"/>
+      <ellipse cx="100" cy="212" rx="70" ry="9"/>
+      <path d="M26 212 V226 C26 236 174 236 174 226 V212"/>
+      <path d="M58 160 H142" />
+      <path class="bird" stroke="none" d="M86 152 c4-10 18-12 24-4 l10-4 -6 8 c2 8-6 14-16 14 h-14 l-10 8 4-10 c-2-4 2-10 8-12z"/>
+    </svg>
+    <p class="eyebrow">Together with their families</p>
+    <h1 class="names" data-names>Anna <span class="amp">&amp;</span> Ben</h1>
+    <p class="invite">invite you to celebrate their marriage</p>
+    <div class="date-line">
+      <span data-date-long>Saturday, 13 March 2027</span>
+      <span class="dot" aria-hidden="true"></span>
+      <span data-time>Four o'clock in the afternoon</span>
+    </div>
+    <p class="place">Chocolat Bistro &middot; Durbanville &middot; Cape Town</p>
+    <div class="countdown" aria-label="Time until the wedding" id="countdown">
+      <div><b id="cd-d">0</b><span>Days</span></div>
+      <div><b id="cd-h">0</b><span>Hours</span></div>
+      <div><b id="cd-m">0</b><span>Min</span></div>
+      <div><b id="cd-s">0</b><span>Sec</span></div>
+    </div>
+    <a class="btn" href="#rsvp">RSVP by <span data-rsvp-by>31 January</span></a>
+  </div>
+</header>
+
+<nav class="top" aria-label="Sections">
+  <div class="wrap">
+    <a href="#story">Our story</a>
+    <a href="#programme">The day</a>
+    <a href="#venue">Venue</a>
+    <a href="#notes">Good to know</a>
+    <a href="#rsvp">RSVP</a>
+  </div>
+</nav>
+
+<section class="block" id="story">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Notre histoire</p>
+      <h2>A love story, <em>with a little chocolate</em></h2>
+      <svg class="flourish" viewBox="0 0 120 14" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M0 7 H48 M72 7 H120"/><path d="M60 1 L66 7 L60 13 L54 7 Z"/></svg>
+    </div>
+    <p class="lede">We met over coffee and stayed for dessert. Years of Sunday brunches, long drives through the Durbanville hills and far too many shared slices of chocolate cake later, we're making it official.</p>
+    <p class="lede">We've chosen a small, cosy bistro for a small, cosy wedding: a handful of the people we love most, French food, good wine from the valley and a fireplace to gather around. We would love for you to be there.</p>
+  </div>
+</section>
+
+<div class="awning flip" aria-hidden="true"></div>
+
+<section class="block" id="programme">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Le programme</p>
+      <h2>The order of the day</h2>
+    </div>
+    <article class="menu" aria-label="Wedding day programme">
+      <p class="menu-title">La Carte du Jour</p>
+      <div class="course">
+        <div class="row"><h3>Arrival</h3><span class="leader"></span><time>15:30</time></div>
+        <p class="fr">L'accueil</p>
+        <p>Welcome drinks in the garden. Park safely in the backyard behind the bistro.</p>
+      </div>
+      <div class="course">
+        <div class="row"><h3>Ceremony</h3><span class="leader"></span><time>16:00</time></div>
+        <p class="fr">La cérémonie</p>
+        <p>We say our vows in the Birdcage. Please be seated by 15:50.</p>
+      </div>
+      <div class="course">
+        <div class="row"><h3>Canapés &amp; photos</h3><span class="leader"></span><time>16:45</time></div>
+        <p class="fr">L'apéritif</p>
+        <p>Bubbles, bites and the golden-hour light in the garden.</p>
+      </div>
+      <div class="course">
+        <div class="row"><h3>Dinner</h3><span class="leader"></span><time>18:00</time></div>
+        <p class="fr">Le dîner</p>
+        <p>A French bistro feast by the fireplace, prepared by the Chocolat Bistro kitchen.</p>
+      </div>
+      <div class="course">
+        <div class="row"><h3>Speeches &amp; dessert</h3><span class="leader"></span><time>20:00</time></div>
+        <p class="fr">Les douceurs</p>
+        <p>Toasts, cake and, naturally, plenty of chocolate.</p>
+      </div>
+      <div class="course">
+        <div class="row"><h3>Dancing</h3><span class="leader"></span><time>20:45</time></div>
+        <p class="fr">On danse</p>
+        <p>The bar stays open. Bring your best moves.</p>
+      </div>
+      <div class="course">
+        <div class="row"><h3>Carriages</h3><span class="leader"></span><time>23:00</time></div>
+        <p class="fr">Bonne nuit</p>
+        <p>Please arrange a driver or a lift home.</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="block" id="venue">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Le lieu</p>
+      <h2>Chocolat Bistro, <em>Durbanville</em></h2>
+    </div>
+    <div class="venue">
+      <div class="venue-art" aria-hidden="true">
+        <div class="sign">
+          <span class="small">Bistro &middot; Chocolaterie</span>
+          <span class="script">Chocolat</span>
+          <span class="small">Durbanville</span>
+        </div>
+      </div>
+      <div class="venue-copy">
+        <h3>A French bistro in the heart of the wine valley</h3>
+        <p>Chocolat Bistro is a little piece of Paris in Durbanville, about 30 minutes from central Cape Town. We will celebrate in the Birdcage, its private room with its own bar and fireplace, and spill out into the garden for drinks and photos.</p>
+        <ul class="facts">
+          <li><span class="k">Venue</span><span>Chocolat Bistro, Durbanville, Cape Town</span></li>
+          <li><span class="k">Room</span><span>The Birdcage, with ceremony and reception in one place</span></li>
+          <li><span class="k">Parking</span><span>Secure parking in the backyard</span></li>
+          <li><span class="k">From the airport</span><span>About 25 minutes by car from Cape Town International</span></li>
+        </ul>
+        <div class="actions">
+          <a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Chocolat+Bistro+Durbanville" target="_blank" rel="noopener">Open in Maps</a>
+          <a class="btn ghost" href="https://chocolatbistro.co.za/" target="_blank" rel="noopener">Venue website</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="notes">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Bon à savoir</p>
+      <h2>Good to know</h2>
+    </div>
+    <div class="notes">
+      <div class="note">
+        <p class="fr">La tenue</p>
+        <h3>Dress code</h3>
+        <p>Garden-party chic. Think linen, florals and colours of the chocolatier: cocoa, caramel, blush and cream. Block heels are kind to the garden lawn.</p>
+      </div>
+      <div class="note">
+        <p class="fr">La météo</p>
+        <h3>Weather</h3>
+        <p>March in Durbanville means warm afternoons and cooler evenings. Bring a wrap or jacket for later; the fireplace will be lit.</p>
+      </div>
+      <div class="note">
+        <p class="fr">Les invités</p>
+        <h3>An intimate guest list</h3>
+        <p>The Birdcage seats a small party, so we can only host the guests named on your invitation. Thank you for understanding.</p>
+      </div>
+      <div class="note">
+        <p class="fr">À table</p>
+        <h3>Food &amp; dietary needs</h3>
+        <p>Dinner is a French-inspired menu from the bistro kitchen. Tell us about allergies or dietary needs in your RSVP and we'll make sure you're looked after.</p>
+      </div>
+      <div class="note">
+        <p class="fr">Où dormir</p>
+        <h3>Staying over</h3>
+        <p>Durbanville has guesthouses and wine-farm stays a few minutes from the bistro. Book early, as March is busy in the Cape.</p>
+      </div>
+      <div class="note">
+        <p class="fr">Les cadeaux</p>
+        <h3>Gifts</h3>
+        <p>Your company is the gift. If you'd like to give something, a contribution to our honeymoon would be warmly received.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block rsvp-band" id="rsvp">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Répondez s'il vous plaît</p>
+      <h2>Will you join us?</h2>
+      <p class="hint">Kindly reply by <span data-rsvp-by>31 January</span>. Your reply opens in WhatsApp, ready to send to us.</p>
+    </div>
+
+    <form class="rsvp" id="rsvp-form" novalidate>
+      <div class="field">
+        <label for="rsvp-name">Your name(s)</label>
+        <input id="rsvp-name" name="name" type="text" autocomplete="name" placeholder="As written on your invitation">
+      </div>
+      <fieldset class="field">
+        <legend>Will you attend?</legend>
+        <div class="choice">
+          <input type="radio" id="rsvp-yes" name="attending" value="yes" checked>
+          <label for="rsvp-yes">Joyfully accepts</label>
+          <input type="radio" id="rsvp-no" name="attending" value="no">
+          <label for="rsvp-no">Regretfully declines</label>
+        </div>
+      </fieldset>
+      <div class="two" id="attending-fields">
+        <div class="field">
+          <label for="rsvp-count">Number of guests</label>
+          <select id="rsvp-count" name="count">
+            <option>1</option><option selected>2</option><option>3</option><option>4</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rsvp-song">A song for the dance floor</label>
+          <input id="rsvp-song" name="song" type="text" placeholder="Optional">
+        </div>
+      </div>
+      <div class="field" id="diet-field">
+        <label for="rsvp-diet">Dietary needs or allergies</label>
+        <input id="rsvp-diet" name="diet" type="text" placeholder="e.g. vegetarian, nut allergy">
+      </div>
+      <div class="field">
+        <label for="rsvp-note">A note for the couple</label>
+        <textarea id="rsvp-note" name="note" placeholder="Optional"></textarea>
+      </div>
+      <p class="error" id="rsvp-error" hidden>Please add your name so we know who is replying.</p>
+      <button class="btn" type="submit">Prepare my reply</button>
+    </form>
+
+    <div class="result" id="rsvp-result" hidden>
+      <h3 id="result-title">Merci!</h3>
+      <p>Send this message to us on WhatsApp to confirm your reply.</p>
+      <pre id="rsvp-message"></pre>
+      <div class="actions">
+        <a class="btn" id="wa-link" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
+        <button class="btn ghost" type="button" id="copy-btn">Copy message</button>
+        <button class="btn ghost" type="button" id="edit-btn">Edit reply</button>
+      </div>
+      <p class="hint">Not on WhatsApp? Send the message to <span data-contact>+27 82 000 0000</span>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="awning" aria-hidden="true"></div>
+
+<footer>
+  <div class="wrap">
+    <p class="names" data-names>Anna <span class="amp">&amp;</span> Ben</p>
+    <p><span data-date-long>Saturday, 13 March 2027</span> &middot; Chocolat Bistro, Durbanville</p>
+    <p>Questions? Message us on <span data-contact>+27 82 000 0000</span></p>
+  </div>
+</footer>
+
+<script>
+/* ---------- Edit your details here ---------- */
+const WEDDING = {
+  partnerOne: "Anna",
+  partnerTwo: "Ben",
+  date: "2027-03-13T16:00:00+02:00", // ceremony time, South African time (SAST, UTC+2)
+  timeWords: "Four o'clock in the afternoon",
+  rsvpBy: "31 January",
+  whatsapp: "27820000000",            // international format, digits only
+  contactDisplay: "+27 82 000 0000"
+};
+/* -------------------------------------------- */
+
+(function () {
+  const when = new Date(WEDDING.date);
+  const longDate = when.toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Johannesburg" });
+
+  document.querySelectorAll("[data-names]").forEach(el => {
+    el.innerHTML = "";
+    el.append(WEDDING.partnerOne, Object.assign(document.createElement("span"), { className: "amp", textContent: "&" }), WEDDING.partnerTwo);
+  });
+  document.querySelectorAll("[data-date-long]").forEach(el => el.textContent = longDate);
+  document.querySelectorAll("[data-time]").forEach(el => el.textContent = WEDDING.timeWords);
+  document.querySelectorAll("[data-rsvp-by]").forEach(el => el.textContent = WEDDING.rsvpBy);
+  document.querySelectorAll("[data-contact]").forEach(el => el.textContent = WEDDING.contactDisplay);
+  document.title = WEDDING.partnerOne + " & " + WEDDING.partnerTwo + "'s Wedding";
+
+  // Countdown
+  const cd = { d: document.getElementById("cd-d"), h: document.getElementById("cd-h"), m: document.getElementById("cd-m"), s: document.getElementById("cd-s") };
+  function tick() {
+    let diff = Math.max(0, when - Date.now());
+    const d = Math.floor(diff / 864e5); diff -= d * 864e5;
+    const h = Math.floor(diff / 36e5); diff -= h * 36e5;
+    const m = Math.floor(diff / 6e4); diff -= m * 6e4;
+    const s = Math.floor(diff / 1e3);
+    cd.d.textContent = d; cd.h.textContent = String(h).padStart(2, "0");
+    cd.m.textContent = String(m).padStart(2, "0"); cd.s.textContent = String(s).padStart(2, "0");
+  }
+  tick(); setInterval(tick, 1000);
+
+  // RSVP
+  const form = document.getElementById("rsvp-form");
+  const result = document.getElementById("rsvp-result");
+  const err = document.getElementById("rsvp-error");
+  const attendingFields = [document.getElementById("attending-fields"), document.getElementById("diet-field")];
+  form.addEventListener("change", () => {
+    const yes = form.attending.value === "yes";
+    attendingFields.forEach(el => el.hidden = !yes);
+  });
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const name = form.name.value.trim();
+    if (!name) { err.hidden = false; form.name.focus(); return; }
+    err.hidden = true;
+    const yes = form.attending.value === "yes";
+    const lines = [
+      "RSVP: " + WEDDING.partnerOne + " & " + WEDDING.partnerTwo + "'s wedding",
+      "Name: " + name,
+      yes ? "Attending: Yes, joyfully accepts" : "Attending: No, regretfully declines"
+    ];
+    if (yes) {
+      lines.push("Guests: " + form.count.value);
+      if (form.diet.value.trim()) lines.push("Dietary needs: " + form.diet.value.trim());
+      if (form.song.value.trim()) lines.push("Song request: " + form.song.value.trim());
+    }
+    if (form.note.value.trim()) lines.push("Note: " + form.note.value.trim());
+    const msg = lines.join("\n");
+    document.getElementById("rsvp-message").textContent = msg;
+    document.getElementById("result-title").textContent = yes ? "Merci! See you there." : "Merci. You'll be missed.";
+    document.getElementById("wa-link").href = "https://wa.me/" + WEDDING.whatsapp + "?text=" + encodeURIComponent(msg);
+    form.hidden = true; result.hidden = false;
+    result.scrollIntoView({ block: "center" });
+  });
+
+  document.getElementById("edit-btn").addEventListener("click", () => { result.hidden = true; form.hidden = false; });
+
+  const copyBtn = document.getElementById("copy-btn");
+  copyBtn.addEventListener("click", () => {
+    const pre = document.getElementById("rsvp-message");
+    const done = () => { copyBtn.textContent = "Copied"; setTimeout(() => copyBtn.textContent = "Copy message", 2000); };
+    const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); copyBtn.textContent = "Selected, press copy"; };
+    try { navigator.clipboard.writeText(pre.textContent).then(done, fallback); } catch (_) { fallback(); }
+  });
+})();
+</script>
+</body>
+</html>
