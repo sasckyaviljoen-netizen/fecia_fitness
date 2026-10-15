@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Jost:wght@300;400;500&family=Parisienne&display=swap">
 <style>
-/* Layout: a French chocolaterie-bistro — awning stripes, a brass birdcage hero, the day set out like a menu card. */
+/* Layout: a chocolate-toned bistro — awning stripes, a brass birdcage hero, the day set out like a menu card. */
 :root {
   --bg: #f6ece3;        /* crème pâtissière */
   --surface: #fbf5ef;
@@ -160,7 +160,6 @@ section.block .wrap { padding-block: 5rem; }
 .course .leader { flex: 1; border-bottom: 1px dotted var(--muted); transform: translateY(-0.3em); min-width: 1.5rem; }
 .course time { font-family: var(--font-display); font-size: var(--step-1); font-variant-numeric: tabular-nums lining-nums; color: var(--brass); white-space: nowrap; }
 .course p { color: var(--muted); font-size: 0.95rem; }
-.course .fr { font-family: var(--font-display); font-style: italic; color: var(--accent); font-size: 0.95rem; }
 
 /* Venue */
 .venue { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4rem); align-items: center; }
@@ -190,7 +189,6 @@ section.block .wrap { padding-block: 5rem; }
 .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem 2rem; }
 .note { display: grid; gap: 0.5rem; align-content: start; min-width: 0; }
 .note h3 { font-size: var(--step-1); }
-.note .fr { font-family: var(--font-display); font-style: italic; color: var(--accent); }
 .note p { color: var(--muted); }
 
 /* RSVP */
@@ -298,12 +296,12 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 <section class="block" id="story">
   <div class="wrap">
     <div class="head">
-      <p class="eyebrow">Notre histoire</p>
+      <p class="eyebrow">Our story</p>
       <h2>A love story, <em>with a little chocolate</em></h2>
       <svg class="flourish" viewBox="0 0 120 14" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M0 7 H48 M72 7 H120"/><path d="M60 1 L66 7 L60 13 L54 7 Z"/></svg>
     </div>
     <p class="lede">We met over coffee and stayed for dessert. Years of Sunday brunches, long drives through the Durbanville hills and far too many shared slices of chocolate cake later, we're making it official.</p>
-    <p class="lede">We've chosen a small, cosy bistro for a small, cosy wedding: a handful of the people we love most, French food, good wine from the valley and a fireplace to gather around. We would love for you to be there.</p>
+    <p class="lede">We've chosen a small, cosy bistro for a small, cosy wedding: a handful of the people we love most, good food, good wine from the valley and a fireplace to gather around. We would love for you to be there.</p>
   </div>
 </section>
 
@@ -312,44 +310,37 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 <section class="block" id="programme">
   <div class="wrap">
     <div class="head">
-      <p class="eyebrow">Le programme</p>
+      <p class="eyebrow">Schedule</p>
       <h2>The order of the day</h2>
     </div>
     <article class="menu" aria-label="Wedding day programme">
-      <p class="menu-title">La Carte du Jour</p>
+      <p class="menu-title">The Day</p>
       <div class="course">
         <div class="row"><h3>Arrival</h3><span class="leader"></span><time>15:30</time></div>
-        <p class="fr">L'accueil</p>
         <p>Welcome drinks in the garden. Park safely in the backyard behind the bistro.</p>
       </div>
       <div class="course">
         <div class="row"><h3>Ceremony</h3><span class="leader"></span><time>16:00</time></div>
-        <p class="fr">La cérémonie</p>
         <p>We say our vows in the Birdcage. Please be seated by 15:50.</p>
       </div>
       <div class="course">
         <div class="row"><h3>Canapés &amp; photos</h3><span class="leader"></span><time>16:45</time></div>
-        <p class="fr">L'apéritif</p>
         <p>Bubbles, bites and the golden-hour light in the garden.</p>
       </div>
       <div class="course">
         <div class="row"><h3>Dinner</h3><span class="leader"></span><time>18:00</time></div>
-        <p class="fr">Le dîner</p>
-        <p>A French bistro feast by the fireplace, prepared by the Chocolat Bistro kitchen.</p>
+        <p>A sit-down dinner by the fireplace, prepared by the Chocolat Bistro kitchen.</p>
       </div>
       <div class="course">
         <div class="row"><h3>Speeches &amp; dessert</h3><span class="leader"></span><time>20:00</time></div>
-        <p class="fr">Les douceurs</p>
         <p>Toasts, cake and, naturally, plenty of chocolate.</p>
       </div>
       <div class="course">
         <div class="row"><h3>Dancing</h3><span class="leader"></span><time>20:45</time></div>
-        <p class="fr">On danse</p>
         <p>The bar stays open. Bring your best moves.</p>
       </div>
       <div class="course">
         <div class="row"><h3>Carriages</h3><span class="leader"></span><time>23:00</time></div>
-        <p class="fr">Bonne nuit</p>
         <p>Please arrange a driver or a lift home.</p>
       </div>
     </article>
@@ -359,20 +350,20 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 <section class="block" id="venue">
   <div class="wrap">
     <div class="head">
-      <p class="eyebrow">Le lieu</p>
+      <p class="eyebrow">The venue</p>
       <h2>Chocolat Bistro, <em>Durbanville</em></h2>
     </div>
     <div class="venue">
       <div class="venue-art" aria-hidden="true">
         <div class="sign">
-          <span class="small">Bistro &middot; Chocolaterie</span>
+          <span class="small">Bistro</span>
           <span class="script">Chocolat</span>
           <span class="small">Durbanville</span>
         </div>
       </div>
       <div class="venue-copy">
-        <h3>A French bistro in the heart of the wine valley</h3>
-        <p>Chocolat Bistro is a little piece of Paris in Durbanville, about 30 minutes from central Cape Town. We will celebrate in the Birdcage, its private room with its own bar and fireplace, and spill out into the garden for drinks and photos.</p>
+        <h3>A cosy bistro in the heart of the wine valley</h3>
+        <p>Chocolat Bistro is a charming spot in Durbanville, about 30 minutes from central Cape Town. We will celebrate in the Birdcage, its private room with its own bar and fireplace, and spill out into the garden for drinks and photos.</p>
         <ul class="facts">
           <li><span class="k">Venue</span><span>Chocolat Bistro, Durbanville, Cape Town</span></li>
           <li><span class="k">Room</span><span>The Birdcage, with ceremony and reception in one place</span></li>
@@ -391,37 +382,31 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 <section class="block" id="notes">
   <div class="wrap">
     <div class="head">
-      <p class="eyebrow">Bon à savoir</p>
+      <p class="eyebrow">Details</p>
       <h2>Good to know</h2>
     </div>
     <div class="notes">
       <div class="note">
-        <p class="fr">La tenue</p>
         <h3>Dress code</h3>
         <p>Garden-party chic. Think linen, florals and colours of the chocolatier: cocoa, caramel, blush and cream. Block heels are kind to the garden lawn.</p>
       </div>
       <div class="note">
-        <p class="fr">La météo</p>
         <h3>Weather</h3>
         <p>January in Durbanville means long, hot summer days and warm evenings, often with a southeaster breeze. Dress for the heat, bring sunglasses for the garden and a light layer for later.</p>
       </div>
       <div class="note">
-        <p class="fr">Les invités</p>
         <h3>An intimate guest list</h3>
         <p>The Birdcage seats a small party, so we can only host the guests named on your invitation. Thank you for understanding.</p>
       </div>
       <div class="note">
-        <p class="fr">À table</p>
         <h3>Food &amp; dietary needs</h3>
-        <p>Dinner is a French-inspired menu from the bistro kitchen. Tell us about allergies or dietary needs in your RSVP and we'll make sure you're looked after.</p>
+        <p>Dinner is served by the bistro kitchen. Tell us about allergies or dietary needs in your RSVP and we'll make sure you're looked after.</p>
       </div>
       <div class="note">
-        <p class="fr">Où dormir</p>
         <h3>Staying over</h3>
         <p>Durbanville has guesthouses and wine-farm stays a few minutes from the bistro. Book early, as January is peak holiday season in the Cape.</p>
       </div>
       <div class="note">
-        <p class="fr">Les cadeaux</p>
         <h3>Gifts</h3>
         <p>Your company is the gift. If you'd like to give something, a contribution to our honeymoon would be warmly received.</p>
       </div>
@@ -432,7 +417,7 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 <section class="block rsvp-band" id="rsvp">
   <div class="wrap">
     <div class="head">
-      <p class="eyebrow">Répondez s'il vous plaît</p>
+      <p class="eyebrow">RSVP</p>
       <h2>Will you join us?</h2>
       <p class="hint">Kindly reply by <span data-rsvp-by>30 November</span>. Your reply opens in WhatsApp, ready to send to us.</p>
     </div>
@@ -476,7 +461,7 @@ footer p { color: var(--muted); font-size: 0.9rem; }
     </form>
 
     <div class="result" id="rsvp-result" hidden>
-      <h3 id="result-title">Merci!</h3>
+      <h3 id="result-title">Thank you!</h3>
       <p>Send this message to us on WhatsApp to confirm your reply.</p>
       <pre id="rsvp-message"></pre>
       <div class="actions">
@@ -568,7 +553,7 @@ const WEDDING = {
     if (form.note.value.trim()) lines.push("Note: " + form.note.value.trim());
     const msg = lines.join("\n");
     document.getElementById("rsvp-message").textContent = msg;
-    document.getElementById("result-title").textContent = yes ? "Merci! See you there." : "Merci. You'll be missed.";
+    document.getElementById("result-title").textContent = yes ? "Thank you! See you there." : "Thank you. You'll be missed.";
     document.getElementById("wa-link").href = "https://wa.me/" + WEDDING.whatsapp + "?text=" + encodeURIComponent(msg);
     form.hidden = true; result.hidden = false;
     result.scrollIntoView({ block: "center" });
