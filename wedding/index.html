@@ -10,18 +10,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;1,6..96,400&family=Jost:wght@300;400;500&family=Parisienne&display=swap">
 <style>
-/* Layout: a chocolate-toned bistro — awning stripes, a brass birdcage hero, the day set out like a menu card. */
+/* Layout: eucalyptus greens and charcoal — awning stripes, a sage birdcage hero, venue facts and an RSVP form. */
 :root {
-  --bg: #f6ece3;        /* crème pâtissière */
-  --surface: #fbf5ef;
-  --ink: #3a2318;       /* dark cocoa */
-  --muted: #7b5e50;
-  --line: #dcc8b8;
-  --accent: #9e2f47;    /* framboise */
-  --brass: #9c7234;
-  --awning-a: #3a2318;
-  --awning-b: #f6ece3;
-  --on-accent: #fbf5ef;
+  --bg: #eef1ec;        /* eucalyptus mist */
+  --surface: #f7f8f5;
+  --ink: #1b1d1a;       /* near-black */
+  --muted: #5e5e5e;     /* grey */
+  --line: #cdd5ca;
+  --accent: #344632;    /* deep eucalyptus green */
+  --brass: #5f6656;     /* sage */
+  --awning-a: #344632;
+  --awning-b: #eef1ec;
+  --on-accent: #f4f6f2;
+  --panel: #3a3a3a;     /* charcoal */
+  --panel-ink: #e6ebe4;
+  --panel-leaf: #a9bba6;
   --font-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
   --font-script: "Parisienne", "Snell Roundhand", "Brush Script MT", cursive;
   --font-body: "Jost", "Futura", "Century Gothic", "Helvetica Neue", Arial, sans-serif;
@@ -33,14 +36,16 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #22150e; --surface: #2d1d14; --ink: #f1e3d3; --muted: #c2a796; --line: #4a3326;
-    --accent: #e57f94; --brass: #d4ac67; --awning-a: #3a2519; --awning-b: #22150e; --on-accent: #22150e;
+    --bg: #121412; --surface: #1d201c; --ink: #e4e9e2; --muted: #a3aba0; --line: #343833;
+    --accent: #a9bba6; --brass: #8f9a89; --awning-a: #344632; --awning-b: #121412; --on-accent: #121412;
+    --panel: #2a2c29; --panel-ink: #e6ebe4; --panel-leaf: #a9bba6;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #22150e; --surface: #2d1d14; --ink: #f1e3d3; --muted: #c2a796; --line: #4a3326;
-  --accent: #e57f94; --brass: #d4ac67; --awning-a: #3a2519; --awning-b: #22150e; --on-accent: #22150e;
+  --bg: #121412; --surface: #1d201c; --ink: #e4e9e2; --muted: #a3aba0; --line: #343833;
+  --accent: #a9bba6; --brass: #8f9a89; --awning-a: #344632; --awning-b: #121412; --on-accent: #121412;
+  --panel: #2a2c29; --panel-ink: #e6ebe4; --panel-leaf: #a9bba6;
   color-scheme: dark;
 }
 
@@ -146,38 +151,24 @@ section.block .wrap { padding-block: 5rem; }
 .lede { max-width: 38rem; margin: 0 auto; text-align: center; font-size: 1.1rem; color: var(--muted); }
 .lede + .lede { margin-top: 1rem; }
 
-/* Menu card programme */
-.menu {
-  max-width: 40rem; margin: 0 auto; background: var(--surface);
-  border: 1px solid var(--line); outline: 1px solid var(--line); outline-offset: -10px;
-  padding: clamp(1.75rem, 5vw, 3.25rem) clamp(1.25rem, 5vw, 3.5rem);
-}
-.menu-title { text-align: center; font-family: var(--font-script); font-size: 2.6rem; color: var(--accent); line-height: 1; margin-bottom: 1.75rem; }
-.course { display: grid; gap: 0.15rem; padding-block: 1rem; border-top: 1px dashed var(--line); }
-.course:first-of-type { border-top: 0; }
-.course .row { display: flex; align-items: baseline; gap: 0.6rem; }
-.course h3 { font-size: var(--step-1); min-width: 0; }
-.course .leader { flex: 1; border-bottom: 1px dotted var(--muted); transform: translateY(-0.3em); min-width: 1.5rem; }
-.course time { font-family: var(--font-display); font-size: var(--step-1); font-variant-numeric: tabular-nums lining-nums; color: var(--brass); white-space: nowrap; }
-.course p { color: var(--muted); font-size: 0.95rem; }
 
 /* Venue */
 .venue { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4rem); align-items: center; }
 .venue-art {
   aspect-ratio: 4 / 5; max-width: 100%;
-  background: var(--awning-a); color: var(--brass);
+  background: var(--panel); color: var(--panel-leaf);
   display: grid; place-items: center; position: relative; overflow: hidden;
 }
 .venue-art::before {
   content: ""; position: absolute; inset: 0 0 auto 0; height: 22%;
-  background: repeating-linear-gradient(90deg, var(--accent) 0 28px, var(--surface) 28px 56px);
+  background: repeating-linear-gradient(90deg, #344632 0 28px, var(--panel-ink) 28px 56px);
   opacity: 0.9;
 }
 .venue-art .sign {
-  position: relative; text-align: center; display: grid; gap: 0.4rem; padding: 1rem; color: #f1e3d3;
+  position: relative; text-align: center; display: grid; gap: 0.4rem; padding: 1rem; color: var(--panel-ink);
 }
-.venue-art .sign .script { font-family: var(--font-script); font-size: clamp(3rem, 8vw, 4.5rem); line-height: 1; color: #f1e3d3; }
-.venue-art .sign .small { font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; color: #d4ac67; }
+.venue-art .sign .script { font-family: var(--font-script); font-size: clamp(3rem, 8vw, 4.5rem); line-height: 1; color: var(--panel-ink); }
+.venue-art .sign .small { font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--panel-leaf); }
 .venue-copy { display: grid; gap: 1.25rem; min-width: 0; }
 .venue-copy h3 { font-size: var(--step-2); }
 .facts { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
@@ -211,7 +202,6 @@ fieldset.field { border: 0; padding: 0; margin: 0; }
 .choice input { position: absolute; opacity: 0; pointer-events: none; }
 .choice input:checked + label { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
 .choice input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 3px; }
-.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
 .hint { font-size: 0.85rem; color: var(--muted); text-align: center; }
 .error { color: var(--accent); font-size: 0.9rem; }
 .result { border: 1px solid var(--brass); padding: 1.5rem; display: grid; gap: 1rem; text-align: center; }
@@ -239,7 +229,6 @@ footer p { color: var(--muted); font-size: 0.9rem; }
   nav.top a { font-size: 0.7rem; letter-spacing: 0.14em; }
 }
 @media (max-width: 420px) {
-  .two { grid-template-columns: minmax(0, 1fr); }
   .facts li { grid-template-columns: minmax(0, 1fr); gap: 0.2rem; }
   .countdown { gap: 0.4rem; }
 }
@@ -286,7 +275,6 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 <nav class="top" aria-label="Sections">
   <div class="wrap">
     <a href="#story">Our story</a>
-    <a href="#programme">The day</a>
     <a href="#venue">Venue</a>
     <a href="#notes">Good to know</a>
     <a href="#rsvp">RSVP</a>
@@ -306,46 +294,6 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 </section>
 
 <div class="awning flip" aria-hidden="true"></div>
-
-<section class="block" id="programme">
-  <div class="wrap">
-    <div class="head">
-      <p class="eyebrow">Schedule</p>
-      <h2>The order of the day</h2>
-    </div>
-    <article class="menu" aria-label="Wedding day programme">
-      <p class="menu-title">The Day</p>
-      <div class="course">
-        <div class="row"><h3>Arrival</h3><span class="leader"></span><time>15:30</time></div>
-        <p>Welcome drinks in the garden. Park safely in the backyard behind the bistro.</p>
-      </div>
-      <div class="course">
-        <div class="row"><h3>Ceremony</h3><span class="leader"></span><time>16:00</time></div>
-        <p>We say our vows in the Birdcage. Please be seated by 15:50.</p>
-      </div>
-      <div class="course">
-        <div class="row"><h3>Canapés &amp; photos</h3><span class="leader"></span><time>16:45</time></div>
-        <p>Bubbles, bites and the golden-hour light in the garden.</p>
-      </div>
-      <div class="course">
-        <div class="row"><h3>Dinner</h3><span class="leader"></span><time>18:00</time></div>
-        <p>A sit-down dinner by the fireplace, prepared by the Chocolat Bistro kitchen.</p>
-      </div>
-      <div class="course">
-        <div class="row"><h3>Speeches &amp; dessert</h3><span class="leader"></span><time>20:00</time></div>
-        <p>Toasts, cake and, naturally, plenty of chocolate.</p>
-      </div>
-      <div class="course">
-        <div class="row"><h3>Dancing</h3><span class="leader"></span><time>20:45</time></div>
-        <p>The bar stays open. Bring your best moves.</p>
-      </div>
-      <div class="course">
-        <div class="row"><h3>Carriages</h3><span class="leader"></span><time>23:00</time></div>
-        <p>Please arrange a driver or a lift home.</p>
-      </div>
-    </article>
-  </div>
-</section>
 
 <section class="block" id="venue">
   <div class="wrap">
@@ -436,17 +384,9 @@ footer p { color: var(--muted); font-size: 0.9rem; }
           <label for="rsvp-no">Regretfully declines</label>
         </div>
       </fieldset>
-      <div class="two" id="attending-fields">
-        <div class="field">
-          <label for="rsvp-count">Number of guests</label>
-          <select id="rsvp-count" name="count">
-            <option>1</option><option selected>2</option><option>3</option><option>4</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="rsvp-song">A song for the dance floor</label>
-          <input id="rsvp-song" name="song" type="text" placeholder="Optional">
-        </div>
+      <div class="field" id="attending-fields">
+        <label for="rsvp-song">A song for the dance floor</label>
+        <input id="rsvp-song" name="song" type="text" placeholder="Optional">
       </div>
       <div class="field" id="diet-field">
         <label for="rsvp-diet">Dietary needs or allergies</label>
@@ -546,7 +486,6 @@ const WEDDING = {
       yes ? "Attending: Yes, joyfully accepts" : "Attending: No, regretfully declines"
     ];
     if (yes) {
-      lines.push("Guests: " + form.count.value);
       if (form.diet.value.trim()) lines.push("Dietary needs: " + form.diet.value.trim());
       if (form.song.value.trim()) lines.push("Song request: " + form.song.value.trim());
     }
