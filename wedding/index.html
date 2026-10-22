@@ -23,6 +23,10 @@
   --panel: #3a3a3a;     /* charcoal */
   --panel-ink: #e6ebe4;
   --panel-leaf: #a9bba6;
+  --env: #344632;       /* envelope */
+  --env-front: #3e5239;
+  --env-flap: #2c3c2a;
+  --seal: #5f6656;
   --font-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
   --font-script: "Parisienne", "Snell Roundhand", "Brush Script MT", cursive;
   --font-body: "Jost", "Futura", "Century Gothic", "Helvetica Neue", Arial, sans-serif;
@@ -37,6 +41,7 @@
     --bg: #121412; --surface: #1d201c; --ink: #e4e9e2; --muted: #a3aba0; --line: #343833;
     --accent: #a9bba6; --brass: #8f9a89; --on-accent: #121412;
     --panel: #2a2c29; --panel-ink: #e6ebe4; --panel-leaf: #a9bba6;
+  --env: #2b3829; --env-front: #334230; --env-flap: #243022; --seal: #6f7a68;
     color-scheme: dark;
   }
 }
@@ -44,6 +49,7 @@
   --bg: #121412; --surface: #1d201c; --ink: #e4e9e2; --muted: #a3aba0; --line: #343833;
   --accent: #a9bba6; --brass: #8f9a89; --on-accent: #121412;
   --panel: #2a2c29; --panel-ink: #e6ebe4; --panel-leaf: #a9bba6;
+  --env: #2b3829; --env-front: #334230; --env-flap: #243022; --seal: #6f7a68;
   color-scheme: dark;
 }
 
@@ -105,7 +111,8 @@ nav.top a:hover { color: var(--accent); }
   font-family: var(--font-script); font-weight: 400; font-size: var(--step-4);
   line-height: 1; color: var(--ink); margin: 0.2rem 0;
 }
-.names .amp { color: var(--accent); font-size: 0.7em; padding: 0 0.15em; }
+.amp { color: var(--accent); padding: 0 0.18em; }
+.names .amp { font-size: 0.7em; padding: 0 0.15em; }
 .date-line {
   display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center;
   font-family: var(--font-display); font-size: var(--step-1); letter-spacing: 0.04em;
@@ -193,6 +200,7 @@ fieldset.field { border: 0; padding: 0; margin: 0; }
 .choice input { position: absolute; top: 0; left: 0; width: 1px; height: 1px; margin: 0; opacity: 0; pointer-events: none; }
 .choice input:checked + label { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
 .choice input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 3px; }
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .hint { font-size: 0.85rem; color: var(--muted); text-align: center; }
 .error { color: var(--accent); font-size: 0.9rem; }
 .result { border: 1px solid var(--brass); padding: 1.5rem; display: grid; gap: 1rem; text-align: center; }
@@ -209,7 +217,77 @@ footer .names { font-size: 3rem; }
 footer p { color: var(--muted); font-size: 0.9rem; }
 
 @keyframes rise { from { transform: translateY(10px); opacity: .25; } }
-.hero .wrap > * { animation: rise .9s ease-out both; }
+.intro-done .hero .wrap > * { animation: rise 1s cubic-bezier(.2, .7, .2, 1) both; }
+.intro-done .hero .wrap > :nth-child(2) { animation-delay: .1s; } .intro-done .hero .wrap > :nth-child(3) { animation-delay: .2s; }
+.intro-done .hero .wrap > :nth-child(4) { animation-delay: .3s; } .intro-done .hero .wrap > :nth-child(5) { animation-delay: .4s; }
+.intro-done .hero .wrap > :nth-child(6) { animation-delay: .5s; } .intro-done .hero .wrap > :nth-child(7) { animation-delay: .6s; }
+
+/* Scroll reveal: only applied by script, so the page is fully visible without it */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .9s ease, transform .9s cubic-bezier(.2, .7, .2, 1); transition-delay: var(--delay, 0s); }
+.reveal.in { opacity: 1; transform: none; }
+.palette .chip { transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
+.palette li:hover .chip { transform: translateY(-4px) scale(1.04); }
+
+/* Envelope intro */
+html.intro-lock, html.intro-lock body { overflow: hidden; }
+#intro {
+  position: fixed; inset: 0; z-index: 50; background: var(--bg);
+  display: grid; place-items: center; align-content: center; gap: 2rem; text-align: center;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  transition: opacity .9s ease, transform .9s ease, visibility 0s .9s;
+}
+#intro.leaving { opacity: 0; transform: scale(1.06); visibility: hidden; }
+#intro .intro-top { display: grid; gap: .5rem; }
+#intro .intro-top .script { font-family: var(--font-script); font-size: clamp(2.2rem, 8vw, 3.2rem); line-height: 1; color: var(--ink); }
+#intro .intro-hint { font-size: .72rem; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); animation: pulse 2.4s ease-in-out infinite; }
+#intro.open .intro-hint, #intro.open .intro-top { opacity: 0; transition: opacity .4s ease; }
+.env {
+  position: relative; width: min(440px, 88vw); aspect-ratio: 3 / 2; max-width: 100%;
+  border: 0; padding: 0; background: none; cursor: pointer; perspective: 1400px;
+  animation: float 4s ease-in-out infinite; transition: transform .6s ease;
+}
+.env:hover { transform: translateY(-4px) rotate(-1deg); }
+#intro.open .env { animation: none; transform: translateY(18%); transition: transform 1.2s cubic-bezier(.2, .7, .2, 1) .5s; }
+.env > * { position: absolute; }
+.env-back { inset: 0; background: var(--env); border-radius: 4px; box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .55); }
+.env-letter {
+  left: 6%; right: 6%; top: 6%; height: 88%; z-index: 2;
+  background: var(--surface); border: 1px solid var(--line);
+  display: grid; place-content: center; gap: .35rem; padding: 1rem;
+  transition: transform 1.1s cubic-bezier(.2, .7, .2, 1) .55s;
+}
+.env-letter .script { font-family: var(--font-script); font-size: clamp(1.8rem, 7vw, 2.6rem); line-height: 1; color: var(--ink); }
+.env-letter .script span { color: var(--accent); }
+.env-letter small { font-family: var(--font-display); font-size: .95rem; color: var(--muted); letter-spacing: .08em; }
+#intro.open .env-letter { transform: translateY(-62%); }
+.env-front {
+  inset: 0; z-index: 3; border-radius: 4px; pointer-events: none;
+  background: var(--env-front);
+  clip-path: polygon(0 0, 50% 56%, 100% 0, 100% 100%, 0 100%);
+}
+.env-front::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(to top right, transparent calc(50% - 1px), rgba(0, 0, 0, .14) 50%, transparent calc(50% + 1px)) left bottom / 50% 100% no-repeat,
+    linear-gradient(to top left, transparent calc(50% - 1px), rgba(0, 0, 0, .14) 50%, transparent calc(50% + 1px)) right bottom / 50% 100% no-repeat;
+}
+.env-flap {
+  left: 0; right: 0; top: 0; height: 58%; z-index: 4; transform-origin: 50% 0;
+  background: var(--env-flap); clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transition: transform .8s cubic-bezier(.4, 0, .2, 1), z-index 0s .4s;
+}
+#intro.open .env-flap { transform: rotateX(180deg); z-index: 1; }
+.env-seal {
+  z-index: 5; left: 50%; top: 58%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--seal) 70%, white), var(--seal) 60%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--seal) 75%, black), 0 6px 14px rgba(0, 0, 0, .3);
+  display: grid; place-items: center;
+  font-family: var(--font-script); font-size: 1.2rem; color: #eef1ec; line-height: 1;
+  transition: transform .5s ease, opacity .4s ease;
+}
+#intro.open .env-seal { transform: scale(.4) rotate(-30deg); opacity: 0; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 
 @media (max-width: 760px) {
   .venue { grid-template-columns: minmax(0, 1fr); }
@@ -226,6 +304,24 @@ footer p { color: var(--muted); font-size: 0.9rem; }
 </style>
 </head>
 <body>
+
+<div id="intro" hidden>
+  <div class="intro-top">
+    <p class="eyebrow">You are invited</p>
+    <p class="script" data-names>Zhanique <span class="amp">&amp;</span> Ben</p>
+  </div>
+  <button class="env" id="env-open" type="button" aria-label="Open the invitation">
+    <span class="env-back"></span>
+    <span class="env-letter">
+      <span class="script" data-names>Zhanique <span class="amp">&amp;</span> Ben</span>
+      <small data-date-short>16 . 01 . 2027</small>
+    </span>
+    <span class="env-front"></span>
+    <span class="env-flap"></span>
+    <span class="env-seal" data-initials>Z&amp;B</span>
+  </button>
+  <p class="intro-hint">Tap the envelope to open</p>
+</div>
 
 <header class="hero" id="top">
   <div class="wrap">
@@ -360,13 +456,13 @@ footer p { color: var(--muted); font-size: 0.9rem; }
     <div class="head">
       <p class="eyebrow">RSVP</p>
       <h2>Will you join us?</h2>
-      <p class="hint">Kindly reply by <span data-rsvp-by>30 November</span>. Your reply opens in WhatsApp, ready to send to us.</p>
+      <p class="hint">Kindly reply by <span data-rsvp-by>30 November</span>.</p>
     </div>
 
     <form class="rsvp" id="rsvp-form" novalidate>
       <div class="field">
         <label for="rsvp-name">Your name(s)</label>
-        <input id="rsvp-name" name="name" type="text" autocomplete="name" placeholder="As written on your invitation">
+        <input id="rsvp-name" name="name" type="text" autocomplete="name" maxlength="200" placeholder="As written on your invitation">
       </div>
       <fieldset class="field">
         <legend>Will you attend?</legend>
@@ -379,30 +475,30 @@ footer p { color: var(--muted); font-size: 0.9rem; }
       </fieldset>
       <div class="field" id="attending-fields">
         <label for="rsvp-song">A song for the dance floor</label>
-        <input id="rsvp-song" name="song" type="text" placeholder="Optional">
+        <input id="rsvp-song" name="song" type="text" maxlength="200" placeholder="Optional">
       </div>
       <div class="field" id="diet-field">
         <label for="rsvp-diet">Dietary needs or allergies</label>
-        <input id="rsvp-diet" name="diet" type="text" placeholder="e.g. vegetarian, nut allergy">
+        <input id="rsvp-diet" name="diet" type="text" maxlength="500" placeholder="e.g. vegetarian, nut allergy">
       </div>
       <div class="field">
         <label for="rsvp-note">A note for the couple</label>
-        <textarea id="rsvp-note" name="note" placeholder="Optional"></textarea>
+        <textarea id="rsvp-note" name="note" maxlength="2000" placeholder="Optional"></textarea>
       </div>
-      <p class="error" id="rsvp-error" hidden>Please add your name so we know who is replying.</p>
-      <button class="btn" type="submit">Prepare my reply</button>
+      <div class="trap" aria-hidden="true">
+        <label for="rsvp-website">Leave this empty</label>
+        <input id="rsvp-website" name="website" type="text" tabindex="-1" autocomplete="off">
+      </div>
+      <p class="error" id="rsvp-error" hidden></p>
+      <button class="btn" type="submit" id="rsvp-submit">Submit RSVP</button>
     </form>
 
     <div class="result" id="rsvp-result" hidden>
       <h3 id="result-title">Thank you!</h3>
-      <p>Send this message to us on WhatsApp to confirm your reply.</p>
-      <pre id="rsvp-message"></pre>
+      <p id="result-text">Your RSVP has been received.</p>
       <div class="actions">
-        <a class="btn" id="wa-link" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
-        <button class="btn ghost" type="button" id="copy-btn">Copy message</button>
-        <button class="btn ghost" type="button" id="edit-btn">Edit reply</button>
+        <button class="btn ghost" type="button" id="again-btn">Send another RSVP</button>
       </div>
-      <p class="hint">Not on WhatsApp? Send the message to <span data-contact>+27 82 000 0000</span>.</p>
     </div>
   </div>
 </section>
@@ -413,7 +509,6 @@ footer p { color: var(--muted); font-size: 0.9rem; }
   <div class="wrap">
     <p class="names" data-names>Zhanique <span class="amp">&amp;</span> Ben</p>
     <p><span data-date-long>Saturday, 16 January 2027</span> &middot; Chocolat Bistro, Durbanville</p>
-    <p>Questions? Message us on <span data-contact>+27 82 000 0000</span></p>
   </div>
 </footer>
 
@@ -424,9 +519,15 @@ const WEDDING = {
   partnerTwo: "Ben",
   date: "2027-01-16T16:00:00+02:00", // ceremony time, South African time (SAST, UTC+2)
   timeWords: "Four o'clock in the afternoon",
-  rsvpBy: "30 November",
-  whatsapp: "27820000000",            // international format, digits only
-  contactDisplay: "+27 82 000 0000"
+  rsvpBy: "30 November"
+};
+
+/* RSVPs are saved to the wedding_rsvps table in Supabase (see wedding/rsvp.sql).
+   The anon key is public by design: the table only lets visitors add replies, never read them. */
+const RSVP_STORE = {
+  url: "https://ydzehsnkcsvinvexcqxi.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkemVoc25rY3N2aW52ZXhjcXhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwMjk1NjQsImV4cCI6MjA5OTYwNTU2NH0.vgVteVk3QPKEwc20mPlYaDHoq3AN0fgSDc-5WzE8x8U",
+  table: "wedding_rsvps"
 };
 /* -------------------------------------------- */
 
@@ -441,8 +542,49 @@ const WEDDING = {
   document.querySelectorAll("[data-date-long]").forEach(el => el.textContent = longDate);
   document.querySelectorAll("[data-time]").forEach(el => el.textContent = WEDDING.timeWords);
   document.querySelectorAll("[data-rsvp-by]").forEach(el => el.textContent = WEDDING.rsvpBy);
-  document.querySelectorAll("[data-contact]").forEach(el => el.textContent = WEDDING.contactDisplay);
   document.title = WEDDING.partnerOne + " & " + WEDDING.partnerTwo + "'s Wedding";
+
+  document.querySelectorAll("[data-initials]").forEach(el => el.textContent = WEDDING.partnerOne[0] + "&" + WEDDING.partnerTwo[0]);
+  const dd = n => String(n).padStart(2, "0");
+  const parts = new Intl.DateTimeFormat("en-ZA", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Africa/Johannesburg" }).formatToParts(when);
+  const part = t => (parts.find(p => p.type === t) || {}).value || "";
+  document.querySelectorAll("[data-date-short]").forEach(el => el.textContent = [part("day"), part("month"), part("year")].join(" . "));
+
+  // Envelope intro: shown once per visit; skipped for reduced motion
+  const root = document.documentElement;
+  const intro = document.getElementById("intro");
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let seen = false;
+  try { seen = sessionStorage.getItem("intro-seen") === "1"; } catch (_) {}
+  const finishIntro = () => { root.classList.remove("intro-lock"); root.classList.add("intro-done"); };
+  if (reduced || seen || location.hash) {
+    finishIntro();
+  } else {
+    intro.hidden = false; root.classList.add("intro-lock");
+    const openBtn = document.getElementById("env-open");
+    openBtn.addEventListener("click", () => {
+      if (intro.classList.contains("open")) return;
+      intro.classList.add("open");
+      try { sessionStorage.setItem("intro-seen", "1"); } catch (_) {}
+      setTimeout(() => { intro.classList.add("leaving"); finishIntro(); }, 1900);
+      setTimeout(() => { intro.hidden = true; }, 2900);
+    });
+  }
+
+  // Sections ease in as they scroll into view
+  if ("IntersectionObserver" in window && !reduced) {
+    const targets = document.querySelectorAll("section.block .head, .lede, .venue-art, .venue-copy, .palette li, .palette-note, .note, form.rsvp");
+    const io = new IntersectionObserver(entries => entries.forEach(en => {
+      if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+    }), { rootMargin: "0px 0px -8% 0px" });
+    targets.forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight) return; // already on screen: leave it visible
+      const sibs = el.parentElement ? [...el.parentElement.children] : [];
+      if (el.matches(".palette li, .note")) el.style.setProperty("--delay", (sibs.indexOf(el) % 6) * 0.09 + "s");
+      el.classList.add("reveal"); io.observe(el);
+    });
+  }
 
   // Countdown
   const cd = { d: document.getElementById("cd-d"), h: document.getElementById("cd-h"), m: document.getElementById("cd-m"), s: document.getElementById("cd-s") };
@@ -461,45 +603,59 @@ const WEDDING = {
   const form = document.getElementById("rsvp-form");
   const result = document.getElementById("rsvp-result");
   const err = document.getElementById("rsvp-error");
+  const submit = document.getElementById("rsvp-submit");
   const attendingFields = [document.getElementById("attending-fields"), document.getElementById("diet-field")];
+  const showError = msg => { err.textContent = msg; err.hidden = false; };
+
   form.addEventListener("change", () => {
     const yes = form.attending.value === "yes";
     attendingFields.forEach(el => el.hidden = !yes);
   });
 
-  form.addEventListener("submit", e => {
+  form.addEventListener("submit", async e => {
     e.preventDefault();
     const name = form.name.value.trim();
-    if (!name) { err.hidden = false; form.name.focus(); return; }
+    if (!name) { showError("Please add your name so we know who is replying."); form.name.focus(); return; }
     err.hidden = true;
     const yes = form.attending.value === "yes";
-    const lines = [
-      "RSVP: " + WEDDING.partnerOne + " & " + WEDDING.partnerTwo + "'s wedding",
-      "Name: " + name,
-      yes ? "Attending: Yes, joyfully accepts" : "Attending: No, regretfully declines"
-    ];
-    if (yes) {
-      if (form.diet.value.trim()) lines.push("Dietary needs: " + form.diet.value.trim());
-      if (form.song.value.trim()) lines.push("Song request: " + form.song.value.trim());
+    const row = {
+      name,
+      attending: yes,
+      dietary: yes ? form.diet.value.trim() || null : null,
+      song: yes ? form.song.value.trim() || null : null,
+      note: form.note.value.trim() || null
+    };
+
+    if (!form.website.value) {
+      submit.disabled = true; submit.textContent = "Sending…";
+      try {
+        const res = await fetch(RSVP_STORE.url + "/rest/v1/" + RSVP_STORE.table, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: RSVP_STORE.anonKey,
+            Authorization: "Bearer " + RSVP_STORE.anonKey,
+            Prefer: "return=minimal"
+          },
+          body: JSON.stringify(row)
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+      } catch (_) {
+        showError("We couldn't send your RSVP just now. Please check your connection and try again.");
+        return;
+      } finally {
+        submit.disabled = false; submit.textContent = "Submit RSVP";
+      }
     }
-    if (form.note.value.trim()) lines.push("Note: " + form.note.value.trim());
-    const msg = lines.join("\n");
-    document.getElementById("rsvp-message").textContent = msg;
+
     document.getElementById("result-title").textContent = yes ? "Thank you! See you there." : "Thank you. You'll be missed.";
-    document.getElementById("wa-link").href = "https://wa.me/" + WEDDING.whatsapp + "?text=" + encodeURIComponent(msg);
+    document.getElementById("result-text").textContent = "Your RSVP has been received, " + name + ".";
+    form.reset(); attendingFields.forEach(el => el.hidden = false);
     form.hidden = true; result.hidden = false;
     result.scrollIntoView({ block: "center" });
   });
 
-  document.getElementById("edit-btn").addEventListener("click", () => { result.hidden = true; form.hidden = false; });
-
-  const copyBtn = document.getElementById("copy-btn");
-  copyBtn.addEventListener("click", () => {
-    const pre = document.getElementById("rsvp-message");
-    const done = () => { copyBtn.textContent = "Copied"; setTimeout(() => copyBtn.textContent = "Copy message", 2000); };
-    const fallback = () => { const r = document.createRange(); r.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(r); copyBtn.textContent = "Selected, press copy"; };
-    try { navigator.clipboard.writeText(pre.textContent).then(done, fallback); } catch (_) { fallback(); }
-  });
+  document.getElementById("again-btn").addEventListener("click", () => { result.hidden = true; form.hidden = false; });
 })();
 </script>
 </body>
